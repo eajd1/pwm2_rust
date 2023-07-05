@@ -2,6 +2,8 @@
 // Data structures
 //
 
+// Client Side
+
 /// Block512 is an array of 64 u8(bytes) representing 512 bits
 pub struct Block512 {
     pub bytes: [u8; 64],
@@ -269,5 +271,65 @@ impl SMsg {
                 SMsg::CypherText(data)
             },
         }
+    }
+}
+
+
+
+
+
+
+
+// Server Side
+
+use std::collections::HashMap;
+
+pub struct UserDataMap (HashMap<String, HashMap<String, SMsg>>);
+
+impl UserDataMap {
+
+    pub fn new() -> UserDataMap {
+        UserDataMap(HashMap::new())
+    }
+
+    /// Returns [Ok] if successful, and [Err] if unsuccessful
+    pub fn add_user(&mut self, username: &str) -> Result<(), ()> {
+        if !self.0.contains_key(username) {
+            self.0.insert(String::from(username), HashMap::new());
+            Ok(())
+        }
+        else {
+            Err(())
+        }
+    }
+
+    /// Returns [Ok] if successful, and [Err] if unsuccessful
+    pub fn add_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
+        if let Some(user_entry) = self.0.get_mut(username) {
+            if !user_entry.contains_key(dataname) {
+                user_entry.insert(String::from(dataname), data);
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+
+    /// Returns [Ok] if successful, and [Err] if unsuccessful
+    pub fn update_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
+        if let Some(user_entry) = self.0.get_mut(username) {
+            if user_entry.contains_key(dataname) {
+                user_entry.insert(String::from(dataname), data);
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+
+    /// Returns [Some(data)] if there is data, else returns [None]
+    pub fn get_data(&mut self, username: &str, dataname: &str) -> Option<&SMsg> {
+        if let Some(user_entry) = self.0.get(username) {
+            return user_entry.get(dataname);
+        }
+        None
     }
 }
