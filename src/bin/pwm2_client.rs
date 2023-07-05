@@ -5,7 +5,7 @@ use std::{
 };
 
 fn main() -> std::io::Result<()> {
-    let mut stream = TcpStream::connect("127.0.0.1:51104")?;
+    let mut stream = TcpStream::connect("192.168.0.31:51104")?;
     
     dialogue(&mut stream, "Hello Server");
 

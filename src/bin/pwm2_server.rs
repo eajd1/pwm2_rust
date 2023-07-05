@@ -8,7 +8,7 @@ use std::{
 
 
 fn main() -> std::io::Result<()> {
-    let tcp_listener = TcpListener::bind("127.0.0.1:51104")?;
+    let tcp_listener = TcpListener::bind("192.168.0.31:51104")?;
 
     for stream in tcp_listener.incoming() {
         match stream {
