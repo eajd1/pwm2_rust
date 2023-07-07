@@ -335,3 +335,42 @@ pub mod server_data {
         }
     }
 }
+
+
+
+/// [Message] used as an intermediary for [TcpStream] messages
+pub enum Message {
+    Hello,
+    Exit,
+    Ok,
+    Error(String),
+    Login(String),
+    Data(String),
+}
+
+impl Message {
+
+    pub fn new(string: &str) -> Self {
+        match string {
+            "Hello" => Self::Hello,
+            "Exit" => Self::Exit,
+            "Ok" => Self::Ok,
+            str if str.starts_with("Error ") => Self::Error(str.trim_start_matches("Error ").to_string()),
+            str if str.starts_with("Login ") => Self::Login(str.trim_start_matches("Login ").to_string()),
+            str if str.starts_with("Data ") => Self::Data(str.trim_start_matches("Data ").to_string()),
+            _ => Self::Error(String::from("Invalid Message"))
+        }
+    }
+
+    /// Encodes a [Message] into a [String]
+    pub fn encode(self) -> String {
+        match self {
+            Message::Hello => String::from("Hello"),
+            Message::Exit => String::from("Exit"),
+            Message::Ok => String::from("Ok"),
+            Message::Error(str) => String::from("Error ") + &str,
+            Message::Login(str) => String::from("Login ") + &str,
+            Message::Data(str) => String::from("Data ") + &str,
+        }
+    }
+}
