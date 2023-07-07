@@ -1,7 +1,12 @@
-use pwm2_rust::{get_input, new_file, open_file, send_receive};
+use pwm2_rust::{
+    get_input,
+    new_file,
+    open_file,
+    send_receive,
+    data_structures::Message,
+};
 use std::{
     net::TcpStream,
-    io::{Write, Read}
 };
 
 fn main() -> std::io::Result<()> {

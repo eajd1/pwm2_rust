@@ -1,10 +1,12 @@
 use pwm2_rust::{
     read_stream,
-    data_structures::server_data::*, send_receive
+    data_structures::server_data::*,
+    send_receive,
+    data_structures::Message,
+    write_stream,
 };
 use std::{
     net::{TcpListener, TcpStream},
-    io::{Write},
     thread,
     sync::{Arc, Mutex}
 };
@@ -36,39 +38,34 @@ fn handle_connection(mut stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> st
     println!("Opened connection from: {}", stream.peer_addr()?);
 
     loop {        
-        if let Some(string) = read_stream(&stream) {
-            match string.as_str() {
-                "Hello Server" => {
-                    stream.write("Hello Client".as_bytes())?;
+        if let Some(message) = read_stream(&stream) {
+            match message {
+                Message::Hello => {
+                    write_stream(&stream, Message::Hello);
                 },
 
-                "Login" => {
-                    if let Some(username) = send_receive(&stream, "Ok") {
-                        println!("{}", username);
-                        if let Ok(_) = data.add_user(&username) {
-                            stream.write("Ok".as_bytes())?;
-                        }
-                        else {
-                            stream.write("Error".as_bytes())?;
-                        }
+                Message::Login(username) => {
+                    println!("{}", username);
+                    if let Ok(_) = data.add_user(&username) {
+                        write_stream(&stream, Message::Ok);
                     }
                     else {
-                        stream.write("Error".as_bytes())?;
+                        write_stream(&stream, Message::Error(String::from("Error Adding user: ") + &username));
                     }
                 },
 
-                "Exit" => {
-                    stream.write("Exit Ok".as_bytes())?;
+                Message::Exit => {
+                    write_stream(&stream, Message::Ok);
                     break
                 },
 
                 _ => { // Not valid command
-                    stream.write("Error".as_bytes())?;
+                    write_stream(&stream, Message::Error(String::from("Invalid Command")));
                 }
             }
         }
         else {
-            stream.write("Error".as_bytes())?;
+            write_stream(&stream, Message::Error(String::from("Communication Error")));
         }
     }
     println!("Closed connection from: {}", stream.peer_addr()?);

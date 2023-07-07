@@ -363,7 +363,7 @@ impl Message {
     }
 
     /// Encodes a [Message] into a [String]
-    pub fn encode(self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             Message::Hello => String::from("Hello"),
             Message::Exit => String::from("Exit"),

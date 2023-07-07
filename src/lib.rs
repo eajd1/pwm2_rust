@@ -7,7 +7,7 @@ use std::{
 use sha2::{Sha512, Digest};
 
 pub mod data_structures;
-use data_structures::client_data::*;
+use data_structures::{client_data::*, Message};
 
 pub fn limit_string(string: String, limit: usize) -> String {
     if limit <= 0 || limit >= string.len() {
@@ -135,25 +135,34 @@ pub fn convert_buffer(buf: &[u8]) -> Option<String> {
 }
 
 /// Sends a message to the given [TcpStream] and receives the reply
-pub fn send_receive(mut stream: &TcpStream, message: &str) -> Option<String> {
+pub fn send_receive(mut stream: &TcpStream, message: Message) -> Option<Message> {
     // Write
-    if let Err(_) = stream.write(message.as_bytes()) {
-        return None;
+    if let None = write_stream(&stream, message) {
+        return None
     }
+
     // Read
-    let mut buf = [0; 512];
+    read_stream(&stream)
+}
+
+/// Calls [read] on the given [TcpStream] and returns [Some] ([Message]) if read was successful
+pub fn read_stream(mut stream: &TcpStream) -> Option<Message> {
+    let mut buf = [0; 600];
     if let Ok(_) = stream.read(&mut buf) {
-        return convert_buffer(&buf);
+        if let Some(string) = convert_buffer(&buf) {
+            return Some(Message::new(&string));
+        }
     }
-    // Return
     None
 }
 
-/// Calls [read] on the given [TcpStream] and returns [Some] ([String]) if read was successful
-pub fn read_stream(mut stream: &TcpStream) -> Option<String> {
-    let mut buf = [0; 512];
-    if let Ok(_) = stream.read(&mut buf) {
-        return convert_buffer(&buf);
+/// Calls [write] on the given [TcpStream] and returns [Some] with the sent [Message] if write was successful
+pub fn write_stream(mut stream: &TcpStream, message: Message) -> Option<Message> {
+    let string = message.to_string();
+    if let Ok(_) = stream.write(string.as_bytes()) {
+        Some(message)
     }
-    None
+    else {
+        None
+    }
 }
