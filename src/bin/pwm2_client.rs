@@ -12,18 +12,14 @@ use std::{
 fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("192.168.0.31:51104")?;
     
-    send_receive(&mut stream, "Hello Server");
+    send_receive(&mut stream, Message::Hello);
 
     // Login
     let username = get_input("Enter Username: ");
-    send_receive(&stream, "Login");
-    let reply = send_receive(&stream, &username);
-    if reply == None {
-        println!("Failed to login");
-        return Ok(());
-    }
+    send_receive(&stream, Message::Login(username));
 
-    send_receive(&mut stream, "Exit");
+    // End transmission
+    send_receive(&mut stream, Message::Exit);
     stream.shutdown(std::net::Shutdown::Both)?;
 
     Ok(())
