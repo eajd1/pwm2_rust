@@ -5,9 +5,9 @@ use std::{
     net::TcpStream
 };
 use sha2::{Sha512, Digest};
-use data_structures::*;
 
 pub mod data_structures;
+use data_structures::client_data::*;
 
 pub fn limit_string(string: String, limit: usize) -> String {
     if limit <= 0 || limit >= string.len() {
@@ -135,16 +135,25 @@ pub fn convert_buffer(buf: &[u8]) -> Option<String> {
 }
 
 /// Sends a message to the given [TcpStream] and receives the reply
-pub fn dialogue(mut stream: &TcpStream, message: &str) -> Option<String> {
+pub fn send_receive(mut stream: &TcpStream, message: &str) -> Option<String> {
     // Write
     if let Err(_) = stream.write(message.as_bytes()) {
         return None;
     }
     // Read
     let mut buf = [0; 512];
-    if let Err(_) = stream.read(&mut buf) {
-        return None;
+    if let Ok(_) = stream.read(&mut buf) {
+        return convert_buffer(&buf);
     }
     // Return
-    convert_buffer(&buf)
+    None
+}
+
+/// Calls [read] on the given [TcpStream] and returns [Some] ([String]) if read was successful
+pub fn read_stream(mut stream: &TcpStream) -> Option<String> {
+    let mut buf = [0; 512];
+    if let Ok(_) = stream.read(&mut buf) {
+        return convert_buffer(&buf);
+    }
+    None
 }

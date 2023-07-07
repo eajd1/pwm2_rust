@@ -1,20 +1,27 @@
-use pwm2_rust::convert_buffer;
+use pwm2_rust::{
+    read_stream,
+    data_structures::server_data::*, send_receive
+};
 use std::{
     net::{TcpListener, TcpStream},
-    io::{Write, Read},
+    io::{Write},
     thread,
-    path::Path
+    sync::{Arc, Mutex}
 };
 
 
 fn main() -> std::io::Result<()> {
     let tcp_listener = TcpListener::bind("192.168.0.31:51104")?;
 
+    let data = Arc::new(Mutex::new(UserDataMap::new()));
+    
     for stream in tcp_listener.incoming() {
         match stream {
             Ok(stream) => {
-                thread::spawn(|| {
-                    handle_connection(stream).expect("Error in connection");
+                let data = Arc::clone(&data);
+                thread::spawn(move || {
+                    handle_connection(stream, data)
+                        .expect("Error in connection");
                 });
             },
             Err(_) => (),
@@ -24,21 +31,37 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
+fn handle_connection(mut stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::io::Result<()> {
+    let mut data = data.lock().unwrap();
     println!("Opened connection from: {}", stream.peer_addr()?);
-    loop {
-        let mut buf = [0; 512];
-        stream.read(&mut buf)?;
-        
-        if let Some(string) = convert_buffer(&buf) {
+
+    loop {        
+        if let Some(string) = read_stream(&stream) {
             match string.as_str() {
                 "Hello Server" => {
                     stream.write("Hello Client".as_bytes())?;
                 },
+
+                "Login" => {
+                    if let Some(username) = send_receive(&stream, "Ok") {
+                        println!("{}", username);
+                        if let Ok(_) = data.add_user(&username) {
+                            stream.write("Ok".as_bytes())?;
+                        }
+                        else {
+                            stream.write("Error".as_bytes())?;
+                        }
+                    }
+                    else {
+                        stream.write("Error".as_bytes())?;
+                    }
+                },
+
                 "Exit" => {
                     stream.write("Exit Ok".as_bytes())?;
                     break
                 },
+
                 _ => { // Not valid command
                     stream.write("Error".as_bytes())?;
                 }
@@ -48,6 +71,7 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
             stream.write("Error".as_bytes())?;
         }
     }
-    println!("Closed connection from {}", stream.peer_addr()?);
+    println!("Closed connection from: {}", stream.peer_addr()?);
+
     Ok(())
 }
