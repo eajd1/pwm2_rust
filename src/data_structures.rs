@@ -73,7 +73,7 @@ pub mod client_data {
         pub fn as_hex(&self) -> String {
             let mut str = String::with_capacity(self.bytes.len() * 2);
             for byte in self.bytes {
-                str.push_str(&format!("{byte:X}"));
+                str.push_str(&format!("{:02X?}", byte));
             }
             str
         }
