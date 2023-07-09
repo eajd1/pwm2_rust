@@ -4,7 +4,7 @@ use pwm2_rust::{
     new_file,
     open_file,
     send_receive,
-    data_structures::Message,
+    data_structures::{Message, client_data::SMsg},
     write_stream,
     read_stream,
 };
@@ -18,12 +18,11 @@ fn main() -> std::io::Result<()> {
     send_receive(&mut stream, Message::Hello);
 
     // Login
-    let username = get_input("Enter Username: ");
+    let mut username = SMsg::new_plain(&get_input("Enter Username: "));
+    username = username.encrypt(&get_input("Enter Password: "));
     if let Some(Message::Error(err)) = send_receive(&stream, Message::Login(username)) {
         println!("{}", err);
     }
-    let password = get_hash(&get_input("Enter Password: "));
-    println!("{}", password.as_hex());
 
     // End transmission
     send_receive(&mut stream, Message::Exit);

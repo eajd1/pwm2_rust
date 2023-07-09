@@ -1,6 +1,6 @@
 use pwm2_rust::{
     read_stream,
-    data_structures::server_data::*,
+    data_structures::{server_data::*, client_data::SMsg},
     send_receive,
     data_structures::Message,
     write_stream,
@@ -45,18 +45,25 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
         write_stream(&stream, Message::Error(String::from("Its polite to say hello")));
     }
 
+    let mut username = String::from("default");
     loop {
         if let Some(message) = read_stream(&stream) {
             match message {
-                Message::Login(username) => {
-                    println!("{}", username);
-                    if let Ok(_) = data.add_user(&username) {
-                        write_stream(&stream, Message::Ok);
+
+                Message::Login(user) => {
+                    username = user.to_string_hex();
+                    write_stream(&stream, Message::Ok);
+                }
+
+                Message::Get(dataname) => {
+                    if let Some(file) = data.get_data(&username, &dataname) {
+                        let length = file.len();
+                        send_receive(&stream, Message::Length(length));
                     }
                     else {
-                        write_stream(&stream, Message::Error(String::from("Cannot add user: ") + &username));
+                        write_stream(&stream, Message::Error(String::from("Data doesn't exist")));
                     }
-                },
+                }
 
                 Message::Exit => {
                     write_stream(&stream, Message::Ok);

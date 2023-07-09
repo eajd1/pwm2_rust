@@ -4,23 +4,23 @@
 
 // Client Side
 
-use std::fmt::Write;
-
 pub mod client_data {
 
     /// Block512 is an array of 64 u8(bytes) representing 512 bits
     pub struct Block512 {
-        pub bytes: [u8; 64],
+        bytes: [u8; 64],
     }
     
     impl Block512 {
     
-        /// Creates a new Block512 initialised to 0
+        /// Creates a new [Block512] initialised to 0
         pub fn new() -> Block512 {
             Block512 { bytes: [0; 64] }
         }
     
-        /// Creates a new Block512 from an array of bytes
+        /// Creates a new [Block512] from an array of bytes
+        /// 
+        /// For inputting plain text
         pub fn from_bytes(bytes: &[u8]) -> Block512 {
             Self::from_bytes_vec(&bytes.to_vec())
         }
@@ -43,27 +43,11 @@ pub mod client_data {
             return block;
         }
     
-        // fn from_string(string: &str) -> Block512 {
-        //     Self::from_bytes(string.as_bytes())
-        // }
-    
-        /// Creates a Block512 from a string of 64 bytes in base 10 seperated by a space
-        fn parse_bytes(string: &str) -> Block512 {
-            // string should be formatted as base 10 bytes seperated by a space e.g. 45 255 0 76...
-            let strings = string.split(' ').collect::<Vec<&str>>();
-            let mut bytes: Vec<u8> = Vec::new();
-            for value in strings {
-                bytes.push(match value.parse::<u8>() {
-                    Ok(x) => x,
-                    Err(_) => break,
-                });
-            }
-            Self::from_bytes_vec(&bytes)
-        }
-    
-        /// Returns a String that the Block512 represents
+        /// Returns a [String] that the [Block512] represents
+        /// 
+        /// For getting plain text out of the [Block512]
         fn to_string(&self) -> String {
-            if let Some(pad) = self.has_padding() {
+            if let Some(pad) = self.padding() {
                 String::from(String::from_utf8_lossy(&self.bytes[0..(64 - pad)]))
             }
             else {
@@ -71,26 +55,8 @@ pub mod client_data {
             }
         }
     
-        /// Returns a String of bytes in base 10 seperated by spaces
-        fn to_string_bytes(&self) -> String {
-            if let Some(pad) = self.has_padding() {
-                let mut string = String::new();
-                for byte in &self.bytes[0..(64 - pad)] {
-                    string += &(byte.to_string() + " ");
-                }
-                string
-            }
-            else {
-                let mut string = String::new();
-                for byte in &self.bytes {
-                    string += &(byte.to_string() + " ");
-                }
-                string
-            }
-        }
-    
         /// Returns None if there is no padding or Some(padding) if there is padding
-        fn has_padding(&self) -> Option<usize> {
+        fn padding(&self) -> Option<usize> {
             let pad = self.bytes[63];
             if pad > 64 {
                 return None;
@@ -103,13 +69,22 @@ pub mod client_data {
             Some(pad as usize)
         }
 
-        /// Returns a [String] of hexadecimal numbers
+        /// Returns the [Block512] as a hexadecimal [String]
         pub fn as_hex(&self) -> String {
             let mut str = String::with_capacity(self.bytes.len() * 2);
             for byte in self.bytes {
                 str.push_str(&format!("{byte:X}"));
             }
             str
+        }
+
+        /// Creates a new [Block512] from a hexadecimal [String]
+        fn from_hex(hex: &str) -> Block512 {
+            let bytes: Vec<u8> = (0..hex.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(&hex[i..=i+1], 16).unwrap())
+                .collect();
+            Self::from_bytes_vec(&bytes)
         }
     
     }
@@ -127,28 +102,6 @@ pub mod client_data {
             return out;
         }
     }
-    
-    // impl Add<u8> for Block512 {
-    //     type Output = Block512;
-    
-    //     fn add(self, rhs: u8) -> Self::Output {
-    //         let mut reversed = self.bytes.clone();
-    //         reversed.reverse();
-    
-    //         let (sum, mut carry) = reversed[0].overflowing_add(rhs);
-    //         reversed[0] = sum;
-    
-    //         let mut i = 1;
-    //         while i < 64 && carry {
-    //             let result = reversed[i].overflowing_add(1);
-    //             reversed[i] = result.0;
-    //             carry = result.1;
-    //             i += 1;
-    //         }
-    //         reversed.reverse();
-    //         return Block512 { bytes: reversed };
-    //     }
-    // }
     
     impl Display for Block512 {
         // for debugging
@@ -168,16 +121,13 @@ pub mod client_data {
     }
     
     impl SMsg {
-        // fn from_string(string: &str) -> Vec<Block512> {
-        //     let mut vector = Vec::new();
-        //     let mut i = 0;
-        //     while i < string.len() {
-        //         let end = if string.len() < i + 64 { i + (string.len() - i) } else { i + 64 };
-        //         vector.push(Block512::from_string(&string[i..end]));
-        //         i += 64;
-        //     }
-        //     return vector;
-        // }
+        
+        pub fn len(&self) -> usize {
+            match self {
+                SMsg::CypherText(vec) => vec.len(),
+                SMsg::PlainText(vec) => vec.len(),
+            }
+        }
     
         fn from_bytes(bytes: &[u8]) -> Vec<Block512> {
             let mut vector = Vec::new();
@@ -190,12 +140,12 @@ pub mod client_data {
             return vector;
         }
     
+        /// string should be hexadecimal numbers seperated by newlines
         fn parse_bytes(string: &str) -> Vec<Block512> {
-            // string should be formatted according to Block512::parse_bytes but with newlines between to blocks
             let lines: Vec<&str> = string.lines().collect();
             let mut vector = Vec::new();
             for line in lines {
-                vector.push(Block512::parse_bytes(line));
+                vector.push(Block512::from_hex(line));
             }
             return vector;
         }
@@ -238,18 +188,18 @@ pub mod client_data {
             return string;
         }
     
-        /// Truns SMsg into a String of base 10 bytes
-        pub fn to_string_bytes(&self) -> String {
+        /// Turns SMsg into a String of hexadecimal numbers
+        pub fn to_string_hex(&self) -> String {
             let mut string = String::new();
             match self {
                 SMsg::CypherText(data) => {
                     for block in data {
-                        string += &(block.to_string_bytes() + "\n");
+                        string += &(block.as_hex() + "\n");
                     }
                 },
                 SMsg::PlainText(data) => {
                     for block in data {
-                        string += &(block.to_string_bytes() + "\n");
+                        string += &(block.as_hex() + "\n");
                     }
                 },
             }
@@ -348,7 +298,7 @@ pub mod server_data {
 }
 
 
-use self::client_data::Block512;
+use self::client_data::SMsg;
 
 /// [Message] used as an intermediary for [TcpStream] messages
 pub enum Message {
@@ -356,8 +306,11 @@ pub enum Message {
     Exit,
     Ok,
     Error(String),
-    Login(String),
-    Data(Block512),
+    Login(SMsg),
+    Data(SMsg),
+    Get(String),
+    Set(String),
+    Length(usize),
 }
 
 impl Message {
@@ -367,13 +320,35 @@ impl Message {
             "Hello" => Self::Hello,
             "Exit" => Self::Exit,
             "Ok" => Self::Ok,
-            str if str.starts_with("Error ") => Self::Error(str.trim_start_matches("Error ").to_string()),
-            str if str.starts_with("Login ") => Self::Login(str.trim_start_matches("Login ").to_string()),
-            str if str.starts_with("Data ") => {
-                Self::Data(Block512::from_bytes(
-                    str.trim_start_matches("Data ").as_bytes()
+
+            str if str.starts_with("Error ") => 
+                Self::Error(str.trim_start_matches("Error ").to_string()),
+
+            str if str.starts_with("Login ") => {
+                Self::Login(SMsg::new_cypher_bytes( // cypher because everything should already encrypted
+                    str.trim_start_matches("Login ")
                 ))
             },
+
+            str if str.starts_with("Data ") => {
+                Self::Data(SMsg::new_cypher_bytes( // cypher because everything should already encrypted
+                    str.trim_start_matches("Data ")
+                ))
+            },
+
+            str if str.starts_with("Get ") => 
+                Self::Get(str.trim_start_matches("Get ").to_string()),
+
+            str if str.starts_with("Set ") => 
+                Self::Set(str.trim_start_matches("Set ").to_string()),
+
+            str if str.starts_with("Length ") => {
+                let length = str.trim_start_matches("Length ")
+                    .parse::<usize>()
+                    .expect("Length doesn't contain a number");
+                Self::Length(length)
+            }
+
             _ => Self::Error(String::from("Invalid Message"))
         }
     }
@@ -385,8 +360,11 @@ impl Message {
             Message::Exit => String::from("Exit"),
             Message::Ok => String::from("Ok"),
             Message::Error(str) => String::from("Error ") + &str,
-            Message::Login(str) => String::from("Login ") + &str,
-            Message::Data(block) => String::from("Data ") + &block.to_string(),
+            Message::Login(block) => String::from("Login ") + &block.to_string_hex(),
+            Message::Data(block) => String::from("Data ") + &block.to_string_hex(),
+            Message::Get(str) => String::from("Get ") + &str,
+            Message::Set(str) => String::from("Set ") + &str,
+            Message::Length(num) => String::from("Length ") + &num.to_string(),
         }
     }
 }
