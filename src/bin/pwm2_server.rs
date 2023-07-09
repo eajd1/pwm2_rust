@@ -33,24 +33,28 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_connection(mut stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::io::Result<()> {
+fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::io::Result<()> {
     let mut data = data.lock().unwrap();
     println!("Opened connection from: {}", stream.peer_addr()?);
 
-    loop {        
+    if let Some(Message::Hello) = read_stream(&stream) {
+        write_stream(&stream, Message::Hello);
+    }
+    else {
+        // The client didn't start a conversation with Hello
+        write_stream(&stream, Message::Error(String::from("Its polite to say hello")));
+    }
+
+    loop {
         if let Some(message) = read_stream(&stream) {
             match message {
-                Message::Hello => {
-                    write_stream(&stream, Message::Hello);
-                },
-
                 Message::Login(username) => {
                     println!("{}", username);
                     if let Ok(_) = data.add_user(&username) {
                         write_stream(&stream, Message::Ok);
                     }
                     else {
-                        write_stream(&stream, Message::Error(String::from("Error Adding user: ") + &username));
+                        write_stream(&stream, Message::Error(String::from("Cannot add user: ") + &username));
                     }
                 },
 

@@ -1,9 +1,12 @@
 use pwm2_rust::{
     get_input,
+    get_hash,
     new_file,
     open_file,
     send_receive,
     data_structures::Message,
+    write_stream,
+    read_stream,
 };
 use std::{
     net::TcpStream,
@@ -16,7 +19,11 @@ fn main() -> std::io::Result<()> {
 
     // Login
     let username = get_input("Enter Username: ");
-    send_receive(&stream, Message::Login(username));
+    if let Some(Message::Error(err)) = send_receive(&stream, Message::Login(username)) {
+        println!("{}", err);
+    }
+    let password = get_hash(&get_input("Enter Password: "));
+    println!("{}", password.as_hex());
 
     // End transmission
     send_receive(&mut stream, Message::Exit);

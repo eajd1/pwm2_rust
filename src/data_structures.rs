@@ -4,6 +4,8 @@
 
 // Client Side
 
+use std::fmt::Write;
+
 pub mod client_data {
 
     /// Block512 is an array of 64 u8(bytes) representing 512 bits
@@ -100,11 +102,19 @@ pub mod client_data {
             }
             Some(pad as usize)
         }
+
+        /// Returns a [String] of hexadecimal numbers
+        pub fn as_hex(&self) -> String {
+            let mut str = String::with_capacity(self.bytes.len() * 2);
+            for byte in self.bytes {
+                str.push_str(&format!("{byte:X}"));
+            }
+            str
+        }
     
     }
     
     use std::{ops::BitXor, fmt::Display};
-    use crate::get_hash;
     
     impl BitXor for &Block512 {
         type Output = Block512;
@@ -151,6 +161,7 @@ pub mod client_data {
     
     
     
+    use crate::get_hash;
     pub enum SMsg {
         CypherText(Vec<Block512>),
         PlainText(Vec<Block512>),
@@ -337,6 +348,7 @@ pub mod server_data {
 }
 
 
+use self::client_data::Block512;
 
 /// [Message] used as an intermediary for [TcpStream] messages
 pub enum Message {
@@ -345,7 +357,7 @@ pub enum Message {
     Ok,
     Error(String),
     Login(String),
-    Data(String),
+    Data(Block512),
 }
 
 impl Message {
@@ -357,7 +369,11 @@ impl Message {
             "Ok" => Self::Ok,
             str if str.starts_with("Error ") => Self::Error(str.trim_start_matches("Error ").to_string()),
             str if str.starts_with("Login ") => Self::Login(str.trim_start_matches("Login ").to_string()),
-            str if str.starts_with("Data ") => Self::Data(str.trim_start_matches("Data ").to_string()),
+            str if str.starts_with("Data ") => {
+                Self::Data(Block512::from_bytes(
+                    str.trim_start_matches("Data ").as_bytes()
+                ))
+            },
             _ => Self::Error(String::from("Invalid Message"))
         }
     }
@@ -370,7 +386,7 @@ impl Message {
             Message::Ok => String::from("Ok"),
             Message::Error(str) => String::from("Error ") + &str,
             Message::Login(str) => String::from("Login ") + &str,
-            Message::Data(str) => String::from("Data ") + &str,
+            Message::Data(block) => String::from("Data ") + &block.to_string(),
         }
     }
 }

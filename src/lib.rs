@@ -135,7 +135,7 @@ pub fn convert_buffer(buf: &[u8]) -> Option<String> {
 }
 
 /// Sends a message to the given [TcpStream] and receives the reply
-pub fn send_receive(mut stream: &TcpStream, message: Message) -> Option<Message> {
+pub fn send_receive(stream: &TcpStream, message: Message) -> Option<Message> {
     // Write
     if let None = write_stream(&stream, message) {
         return None
