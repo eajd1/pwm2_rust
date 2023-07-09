@@ -47,7 +47,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
 
     let mut username = String::from("default");
     loop {
-        if let Some(message) = read_stream(&stream, 161) {
+        if let Some(message) = read_stream(&stream, 100) {
             match message {
 
                 Message::Login(user) => {
