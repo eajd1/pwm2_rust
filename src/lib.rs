@@ -147,7 +147,7 @@ pub fn send_receive(stream: &TcpStream, message: Message, size: usize) -> Option
 
 /// Calls [read] on the given [TcpStream] and returns [Some] ([Message]) if read was successful
 pub fn read_stream(mut stream: &TcpStream, size: usize) -> Option<Message> {
-    let mut buf: Vec<u8> = vec![0; size];
+    let mut buf: Vec<u8> = vec![0; size + 16];
     if let Ok(_) = stream.read(&mut buf[..]) {
         if let Some(string) = convert_buffer(&buf) {
             return Some(Message::new(&string));

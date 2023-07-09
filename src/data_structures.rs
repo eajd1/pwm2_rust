@@ -109,6 +109,12 @@ pub mod client_data {
             f.write_fmt(format_args!("{:?}", self.bytes))
         }
     }
+
+    impl Clone for Block512 {
+        fn clone(&self) -> Self {
+        Self { bytes: self.bytes.clone() }
+    }
+    }
     
     
     
@@ -235,6 +241,15 @@ pub mod client_data {
                 },
             }
         }
+    }
+
+    impl Clone for SMsg {
+        fn clone(&self) -> Self {
+        match self {
+            Self::CypherText(block) => Self::CypherText(block.clone()),
+            Self::PlainText(block) => Self::PlainText(block.clone()),
+        }
+    }
     }
 }
 

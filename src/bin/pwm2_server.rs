@@ -47,7 +47,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
 
     let mut username = String::from("default");
     loop {
-        if let Some(message) = read_stream(&stream, 100) {
+        if let Some(message) = read_stream(&stream, 200) {
             match message {
 
                 Message::Login(user) => {
@@ -59,6 +59,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                     if let Some(file) = data.get_data(&username, &dataname) {
                         let length = file.len();
                         send_receive(&stream, Message::Length(length), 16);
+                        write_stream(&stream, Message::Data(file.clone()));
                     }
                     else {
                         write_stream(&stream, Message::Error(String::from("Data doesn't exist")));
@@ -67,17 +68,20 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
 
                 Message::Exit => {
                     write_stream(&stream, Message::Ok);
+                    eprintln!("Exited Ok");
                     break
                 },
 
                 _ => { // Not valid command
                     write_stream(&stream, Message::Error(String::from("Invalid Command")));
+                    eprintln!("Invalid Command");
                     break
                 }
             }
         }
         else {
             write_stream(&stream, Message::Error(String::from("Communication Error")));
+            eprintln!("Communication Error");
             break
         }
     }
