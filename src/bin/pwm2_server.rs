@@ -37,7 +37,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
     let mut data = data.lock().unwrap();
     println!("Opened connection from: {}", stream.peer_addr()?);
 
-    if let Some(Message::Hello) = read_stream(&stream) {
+    if let Some(Message::Hello) = read_stream(&stream, 16) {
         write_stream(&stream, Message::Hello);
     }
     else {
@@ -47,7 +47,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
 
     let mut username = String::from("default");
     loop {
-        if let Some(message) = read_stream(&stream) {
+        if let Some(message) = read_stream(&stream, 161) {
             match message {
 
                 Message::Login(user) => {
@@ -58,7 +58,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                 Message::Get(dataname) => {
                     if let Some(file) = data.get_data(&username, &dataname) {
                         let length = file.len();
-                        send_receive(&stream, Message::Length(length));
+                        send_receive(&stream, Message::Length(length), 16);
                     }
                     else {
                         write_stream(&stream, Message::Error(String::from("Data doesn't exist")));

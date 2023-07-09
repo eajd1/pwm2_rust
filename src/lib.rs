@@ -135,19 +135,19 @@ pub fn convert_buffer(buf: &[u8]) -> Option<String> {
 }
 
 /// Sends a message to the given [TcpStream] and receives the reply
-pub fn send_receive(stream: &TcpStream, message: Message) -> Option<Message> {
+pub fn send_receive(stream: &TcpStream, message: Message, size: usize) -> Option<Message> {
     // Write
     if let None = write_stream(&stream, message) {
         return None
     }
 
     // Read
-    read_stream(&stream)
+    read_stream(&stream, size)
 }
 
 /// Calls [read] on the given [TcpStream] and returns [Some] ([Message]) if read was successful
-pub fn read_stream(mut stream: &TcpStream) -> Option<Message> {
-    let mut buf = [0; 512];
+pub fn read_stream(mut stream: &TcpStream, size: usize) -> Option<Message> {
+    let mut buf: Vec<u8> = Vec::with_capacity(size);
     if let Ok(_) = stream.read(&mut buf) {
         if let Some(string) = convert_buffer(&buf) {
             return Some(Message::new(&string));
