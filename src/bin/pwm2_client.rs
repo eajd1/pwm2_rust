@@ -8,38 +8,35 @@ use pwm2_rust::{
     write_stream,
     read_stream,
 };
-use std::{
-    net::TcpStream,
-};
+use std::net::TcpStream;
 
-// fn main() -> std::io::Result<()> {
-//     let mut stream = TcpStream::connect("192.168.0.31:51104")?;
+fn main() -> std::io::Result<()> {
+    let mut stream = TcpStream::connect("192.168.0.31:51104")?;
     
-//     send_receive(&mut stream, Message::Hello, 16);
+    send_receive(&mut stream, Message::Hello, 16);
 
-//     // Login
-//     let mut username = SMsg::new_plain(&get_input("Enter Username: "));
-//     username = username.encrypt(&get_input("Enter Password: "));
-//     println!("{}", username.to_string_hex());
-//     if let Some(Message::Error(err)) = send_receive(&stream, Message::Login(username), 16) {
-//         println!("{}", err);
-//     }
-
-//     // End transmission
-//     send_receive(&mut stream, Message::Exit, 16);
-//     stream.shutdown(std::net::Shutdown::Both)?;
-
-//     Ok(())
-// }
-
-fn main() {
-    loop {
-        let input = get_input("new | open | exit: ");
-        match input.to_lowercase().as_str() {
-            "new" => new_file(),
-            "open" => open_file(),
-            "exit" => break,
-            _ => println!("Incorrect Input"),
-        }
+    // Login
+    let mut username = SMsg::new_plain(&get_input("Enter Username: "));
+    username = username.encrypt(&get_input("Enter Password: "));
+    if let Some(Message::Error(err)) = send_receive(&stream, Message::Login(username), 16) {
+        println!("{}", err);
     }
+
+    // End transmission
+    send_receive(&mut stream, Message::Exit, 16);
+    stream.shutdown(std::net::Shutdown::Both)?;
+
+    Ok(())
 }
+
+// fn main() {
+//     loop {
+//         let input = get_input("new | open | exit: ");
+//         match input.to_lowercase().as_str() {
+//             "new" => new_file(),
+//             "open" => open_file(),
+//             "exit" => break,
+//             _ => println!("Incorrect Input"),
+//         }
+//     }
+// }

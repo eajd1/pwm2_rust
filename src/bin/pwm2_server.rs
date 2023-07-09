@@ -72,11 +72,13 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
 
                 _ => { // Not valid command
                     write_stream(&stream, Message::Error(String::from("Invalid Command")));
+                    break
                 }
             }
         }
         else {
             write_stream(&stream, Message::Error(String::from("Communication Error")));
+            break
         }
     }
     println!("Closed connection from: {}", stream.peer_addr()?);
