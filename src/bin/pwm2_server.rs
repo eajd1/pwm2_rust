@@ -42,12 +42,12 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
     }
     else {
         // The client didn't start a conversation with Hello
-        write_stream(&stream, Message::Error(String::from("Its polite to say hello")));
+        write_error(&stream, "Its polite to say hello");
     }
 
     let mut username = String::from("default");
     loop {
-        if let Some(message) = read_stream(&stream, 200) {
+        if let Some(message) = read_stream(&stream, 100) {
             match message {
 
                 Message::Login(user) => {
@@ -62,7 +62,20 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                         write_stream(&stream, Message::Data(file.clone()));
                     }
                     else {
-                        write_stream(&stream, Message::Error(String::from("Data doesn't exist")));
+                        write_error(&stream, "Data doesn't exist");
+                    }
+                }
+
+                Message::Set(dataname) => {
+                    if let Some(Message::Length(length)) = send_receive(&stream, Message::Ok, 16) {
+                        if let Some(Message::Data(file)) = send_receive(&stream, Message::Ok, length) {
+                            if let Ok(_) = data.set_data(&username, &dataname, file) {
+                                write_stream(&stream, Message::Ok);
+                            }
+                            else {
+                                write_error(&stream, "Couldn't set data");
+                            }
+                        }
                     }
                 }
 
@@ -73,14 +86,14 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                 },
 
                 _ => { // Not valid command
-                    write_stream(&stream, Message::Error(String::from("Invalid Command")));
+                    write_error(&stream, "Invalid Command");
                     eprintln!("Invalid Command");
                     break
                 }
             }
         }
         else {
-            write_stream(&stream, Message::Error(String::from("Communication Error")));
+            write_error(&stream, "Communication Error");
             eprintln!("Communication Error");
             break
         }
@@ -88,4 +101,8 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
     println!("Closed connection from: {}", stream.peer_addr()?);
 
     Ok(())
+}
+
+fn write_error(stream: &TcpStream, message: &str) {
+    write_stream(&stream, Message::Error(String::from(message)));
 }

@@ -281,20 +281,9 @@ pub mod server_data {
         }
     
         /// Returns [Ok] if successful, and [Err] if unsuccessful
-        pub fn add_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
+        pub fn set_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
             if let Some(user_entry) = self.0.get_mut(username) {
                 if !user_entry.contains_key(dataname) {
-                    user_entry.insert(String::from(dataname), data);
-                    return Ok(());
-                }
-            }
-            Err(())
-        }
-    
-        /// Returns [Ok] if successful, and [Err] if unsuccessful
-        pub fn update_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
-            if let Some(user_entry) = self.0.get_mut(username) {
-                if user_entry.contains_key(dataname) {
                     user_entry.insert(String::from(dataname), data);
                     return Ok(());
                 }

@@ -22,6 +22,20 @@ fn main() -> std::io::Result<()> {
         println!("{}", err);
     }
 
+    loop {
+        let input = get_input("new | open | exit: ");
+        match input.to_lowercase().as_str() {
+            "new" => {
+
+            },
+            "open" => {
+                
+            },
+            "exit" => break,
+            _ => println!("Incorrect Input"),
+        }
+    }
+
     // End transmission
     send_receive(&mut stream, Message::Exit, 16);
     stream.shutdown(std::net::Shutdown::Both)?;
