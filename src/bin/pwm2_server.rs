@@ -1,6 +1,6 @@
 use pwm2_rust::{
     read_stream,
-    data_structures::{server_data::*, client_data::SMsg},
+    data_structures::server_data::*,
     send_receive,
     data_structures::Message,
     write_stream,
@@ -22,8 +22,7 @@ fn main() -> std::io::Result<()> {
             Ok(stream) => {
                 let data = Arc::clone(&data);
                 thread::spawn(move || {
-                    handle_connection(stream, data)
-                        .expect("Error in connection");
+                    handle_connection(stream, data);
                 });
             },
             Err(_) => (),
@@ -33,21 +32,28 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::io::Result<()> {
+fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) {
     let mut data = data.lock().unwrap();
-    println!("Opened connection from: {}", stream.peer_addr()?);
+    println!("Opened connection from: {}", stream.peer_addr().unwrap());
 
-    if let Some(Message::Hello) = read_stream(&stream, 16) {
-        write_stream(&stream, Message::Hello);
+    let mut username: String;
+    match read_stream(&stream, 128) {
+        Some(Message::Login(name)) => {
+            username = name.to_string_hex();
+            write_stream(&stream, Message::Ok);
+        }
+        Some(_) => {
+            write_error(&stream, "You need to login");
+            return
+        }
+        None => {
+            write_error(&stream, "Communication Error");
+            return
+        }
     }
-    else {
-        // The client didn't start a conversation with Hello
-        write_error(&stream, "Its polite to say hello");
-    }
-
-    let mut username = String::from("default");
+    
     loop {
-        if let Some(message) = read_stream(&stream, 100) {
+        if let Some(message) = read_stream(&stream, 128) {
             match message {
 
                 Message::Login(user) => {
@@ -78,6 +84,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                 Message::Set(dataname) => {
                     if let Some(Message::Length(length)) = send_receive(&stream, Message::Ok, 16) {
                         if let Some(Message::Data(file)) = send_receive(&stream, Message::Ok, length) {
+                            println!("{} {} {}", dataname, length, file.to_string_hex());
                             if let Ok(_) = data.set_data(&username, &dataname, file) {
                                 write_stream(&stream, Message::Ok);
                             }
@@ -94,9 +101,9 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                     break
                 },
 
-                _ => { // Not valid command
+                msg => { // Not valid command
                     write_error(&stream, "Invalid Command");
-                    eprintln!("Invalid Command");
+                    eprintln!("Invalid Command: {}", msg.to_string());
                     break
                 }
             }
@@ -107,9 +114,7 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
             break
         }
     }
-    println!("Closed connection from: {}", stream.peer_addr()?);
-
-    Ok(())
+    println!("Closed connection from: {}", stream.peer_addr().unwrap());
 }
 
 fn write_error(stream: &TcpStream, message: &str) {

@@ -12,14 +12,15 @@ use std::net::TcpStream;
 
 fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("192.168.0.31:51104")?;
-    
-    send_receive(&mut stream, Message::Hello, 16);
 
     // Login
     let mut username = SMsg::new_plain(&get_input("Enter Username: "));
     username = username.encrypt(&get_input("Enter Password: "));
-    if let Some(Message::Error(err)) = send_receive(&stream, Message::Login(username), 16) {
-        println!("{}", err);
+    write_stream(&stream, Message::Login(username));
+    match read_stream(&stream, 16) {
+        Some(Message::Ok) => println!("Logged in"),
+        Some(Message::Error(error)) => eprintln!("{}", error),
+        _ => eprintln!("Communication Error"),
     }
 
     loop {
@@ -27,13 +28,12 @@ fn main() -> std::io::Result<()> {
         match input.to_lowercase().as_str() {
             "new" => {
                 let data = new_file();
-                let data_name = get_input("Etner Name: ");
+                let data_name = get_input("Enter Name: ");
                 if let Some(Message::Ok) = send_receive(&stream, Message::Set(data_name), 16) {
                     if let Some(Message::Ok) = send_receive(&stream, Message::Length(data.len()), 16) {
                         match send_receive(&stream, Message::Data(data), 16) {
-                            Some(Message::Ok) => (),
-                            Some(msg) => println!("{}", msg.to_string()),
-                            None => (),
+                            Some(Message::Error(err)) => eprintln!("{}", err),
+                            _ => (),
                         }
                     }
                 }

@@ -306,7 +306,6 @@ use self::client_data::SMsg;
 
 /// [Message] used as an intermediary for [TcpStream] messages
 pub enum Message {
-    Hello,
     Exit,
     Ok,
     Error(String),
@@ -321,7 +320,6 @@ impl Message {
 
     pub fn new(string: &str) -> Self {
         match string {
-            "Hello" => Self::Hello,
             "Exit" => Self::Exit,
             "Ok" => Self::Ok,
 
@@ -360,7 +358,6 @@ impl Message {
     /// Encodes a [Message] into a [String]
     pub fn to_string(&self) -> String {
         match self {
-            Message::Hello => String::from("Hello"),
             Message::Exit => String::from("Exit"),
             Message::Ok => String::from("Ok"),
             Message::Error(str) => String::from("Error ") + &str,
