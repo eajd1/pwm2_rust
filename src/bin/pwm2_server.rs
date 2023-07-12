@@ -58,8 +58,17 @@ fn handle_connection(stream: TcpStream, data: Arc<Mutex<UserDataMap>>) -> std::i
                 Message::Get(dataname) => {
                     if let Some(file) = data.get_data(&username, &dataname) {
                         let length = file.len();
-                        send_receive(&stream, Message::Length(length), 16);
-                        write_stream(&stream, Message::Data(file.clone()));
+                        match send_receive(&stream, Message::Length(length), 16) {
+                            Some(Message::Ok) => {
+                                write_stream(&stream, Message::Data(file.clone()));
+                            }
+                            Some(_) => {
+                                write_error(&stream, "Incorrect Message, should receive \"Ok\"");
+                            }
+                            None => {
+                                write_error(&stream, "Communication Error");
+                            }
+                        }
                     }
                     else {
                         write_error(&stream, "Data doesn't exist");

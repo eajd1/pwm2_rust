@@ -29,7 +29,12 @@ fn main() -> std::io::Result<()> {
 
             },
             "open" => {
-                
+                let data_name = get_input("Enter Name: ");
+                if let Some(Message::Length(len)) = send_receive(&stream, Message::Get(data_name), 16) {
+                    if let Some(Message::Data(data)) = send_receive(&stream, Message::Ok, len) {
+                        println!("{}", data.to_string());
+                    }
+                }
             },
             "exit" => break,
             _ => println!("Incorrect Input"),
