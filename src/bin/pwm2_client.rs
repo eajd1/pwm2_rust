@@ -26,7 +26,17 @@ fn main() -> std::io::Result<()> {
         let input = get_input("new | open | exit: ");
         match input.to_lowercase().as_str() {
             "new" => {
-
+                let data = new_file();
+                let data_name = get_input("Etner Name: ");
+                if let Some(Message::Ok) = send_receive(&stream, Message::Set(data_name), 16) {
+                    if let Some(Message::Ok) = send_receive(&stream, Message::Length(data.len()), 16) {
+                        match send_receive(&stream, Message::Data(data), 16) {
+                            Some(Message::Ok) => (),
+                            Some(msg) => println!("{}", msg.to_string()),
+                            None => (),
+                        }
+                    }
+                }
             },
             "open" => {
                 let data_name = get_input("Enter Name: ");

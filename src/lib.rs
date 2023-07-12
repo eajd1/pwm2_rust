@@ -72,7 +72,7 @@ fn save_file(content: String) {
     }
 }
 
-pub fn new_file() {
+pub fn new_file() -> SMsg {
     let input = get_input("Enter file name or message: ");
 
     // File input
@@ -90,7 +90,8 @@ pub fn new_file() {
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output
-    save_file(msg.to_string_hex());
+    // save_file(msg.to_string_hex());
+    msg
 }
 
 pub fn open_file() {
