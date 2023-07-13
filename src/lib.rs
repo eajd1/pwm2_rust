@@ -123,47 +123,47 @@ pub fn open_file() {
 /// For use with TcpStream
 /// 
 /// Converts a buffer of [u8] into a [String] without any trailing "\0"
-pub fn convert_buffer(buf: &[u8]) -> Option<String> {
+pub fn convert_buffer(buf: &[u8]) -> String {
     let vec: Vec<u8> = buf.to_vec()
         .into_iter()
         .take_while(|x| x != &0u8)
         .collect();
 
-    match String::from_utf8(vec) {
-        Ok(string) => Some(string),
-        Err(_) => None,
+    match String::from_utf8(vec.clone()) {
+        Ok(string) => string,
+        Err(_) => String::from_utf8_lossy(&vec).to_string(),
     }
 }
 
 /// Sends a message to the given [TcpStream] and receives the reply
-pub fn send_receive(stream: &TcpStream, message: Message, size: usize) -> Option<Message> {
+pub fn send_receive(stream: &TcpStream, message: Message, size: usize) -> Message {
     // Write
-    if let None = write_stream(&stream, message) {
-        return None
-    }
+    write_stream(&stream, message);
 
     // Read
     read_stream(&stream, size)
 }
 
-/// Calls [read] on the given [TcpStream] and returns [Some] ([Message]) if read was successful
-pub fn read_stream(mut stream: &TcpStream, size: usize) -> Option<Message> {
+/// Calls [read] on the given [TcpStream] and returns [Message]
+/// 
+/// If the read was unsuccessful it will send an error and read the response from that
+pub fn read_stream(mut stream: &TcpStream, size: usize) -> Message {
     let mut buf: Vec<u8> = vec![0; size + 16];
-    if let Ok(_) = stream.read(&mut buf[..]) {
-        if let Some(string) = convert_buffer(&buf) {
-            return Some(Message::new(&string));
-        }
+    while let Err(_) = stream.read(&mut buf[..]) {
+        write_stream(&stream, Message::Error(String::from("Communication Error")));
     }
-    None
+    Message::new(&convert_buffer(&buf))
 }
 
-/// Calls [write] on the given [TcpStream] and returns [Some] with the sent [Message] if write was successful
-pub fn write_stream(mut stream: &TcpStream, message: Message) -> Option<Message> {
-    let string = message.to_string();
-    if let Ok(_) = stream.write(string.as_bytes()) {
-        Some(message)
+/// Calls [write] on the given [TcpStream] and returns the sent [Message]
+/// 
+/// Will try to send the message a maximum of 32 times before giving up
+pub fn write_stream(mut stream: &TcpStream, message: Message) -> Message {
+    let mut timeout = 32; // will try to write only 32 times
+
+    while let Err(_) = stream.write(message.to_string().as_bytes()) {
+        if timeout <= 0 {break}
+        timeout -= 1;
     }
-    else {
-        None
-    }
+    message
 }
