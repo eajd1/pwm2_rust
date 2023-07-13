@@ -1,8 +1,6 @@
 use pwm2_rust::{
     get_input,
-    get_hash,
     new_file,
-    open_file,
     send_receive,
     data_structures::{Message, client_data::SMsg},
     write_stream,
@@ -62,15 +60,3 @@ fn main() -> std::io::Result<()> {
 
     Ok(())
 }
-
-// fn main() {
-//     loop {
-//         let input = get_input("new | open | exit: ");
-//         match input.to_lowercase().as_str() {
-//             "new" => new_file(),
-//             "open" => open_file(),
-//             "exit" => break,
-//             _ => println!("Incorrect Input"),
-//         }
-//     }
-// }

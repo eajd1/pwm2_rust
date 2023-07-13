@@ -9,24 +9,7 @@ use sha2::{Sha512, Digest};
 pub mod data_structures;
 use data_structures::{client_data::*, Message};
 
-pub fn limit_string(string: String, limit: usize) -> String {
-    if limit <= 0 || limit >= string.len() {
-        return string;
-    }
-    else {
-        let mut i = 0;
-        let mut result = String::new();
-        while i < limit {
-            match string.chars().nth(i) {
-                Some(s) => result += &s.to_string(),
-                None => break,
-            }
-            i += 1;
-        }
-        return result + "...";
-    }
-}
-
+/// Shows message in the console and reads a line input
 pub fn get_input(message: &str) -> String {
     // User input
     print!("{}", message);
@@ -36,6 +19,7 @@ pub fn get_input(message: &str) -> String {
     return input.trim_end().to_string();
 }
 
+/// Returns the SHA512 hash of the given &str
 pub fn get_hash(password: &str) -> Block512 {
     // Hashing
     let mut hasher = Sha512::new();
@@ -44,34 +28,9 @@ pub fn get_hash(password: &str) -> Block512 {
     return Block512::from_bytes(&result[..]);
 }
 
-fn load_file() -> String {
-    let file;
-    loop {
-        let input = get_input("Enter filename: ");
-    
-        // File input
-        let result = fs::read_to_string(&input);
-        match result {
-            Ok(x) => { file = x; break; },
-            Err(_) => { eprintln!("Error Reading File"); continue; },
-        }
-    }
-    return file;
-}
-
-fn save_file(content: String) {
-    loop {
-       let input = get_input("Enter file name to output: ");
-    
-        // File input
-        let result = fs::write(&input, &content);
-        match result {
-            Ok(_) => break,
-            Err(_) => eprintln!("Error writing to \"{}\"", input),
-        }
-    }
-}
-
+/// Reads text from a file or the input and encrypts it with a password
+/// 
+/// Returns the result of the encryption as a hex string
 pub fn new_file() -> String {
     let input = get_input("Enter file name or message: ");
 
@@ -94,35 +53,10 @@ pub fn new_file() -> String {
     msg.to_string_hex()
 }
 
-pub fn open_file() {
-    let file = load_file();
 
-    let password = get_input("Enter password: ");
+// For use with TcpStream
 
-    // Decryption
-    let mut msg = SMsg::cypher_from_hex(&file);
-    let start = Instant::now();
-    msg = msg.decrypt(&password);
-    println!("Decrypted in: {:?}", start.elapsed());
-
-    // Output
-    let response = get_input("Display Contents? ");
-    match response.as_str() {
-        "" => return,
-        _ => println!("{}", msg.to_string()),
-    }
-
-    let response = get_input("Save output? ");
-    match response.as_str() {
-        "" => return,
-        _ => save_file(msg.to_string()),
-    }
-}
-
-
-/// For use with TcpStream
-/// 
-/// Converts a buffer of [u8] into a [String] without any trailing "\0"
+/// Converts a buffer of [u8] into a [String] without any trailing nulls "\0"
 pub fn convert_buffer(buf: &[u8]) -> String {
     let vec: Vec<u8> = buf.to_vec()
         .into_iter()
