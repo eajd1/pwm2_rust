@@ -8,6 +8,7 @@ use std::{
     net::{TcpListener, TcpStream},
     thread,
     path::Path,
+    fs,
 };
 
 
@@ -36,6 +37,7 @@ fn handle_connection(stream: TcpStream) {
         Message::Login(name) => {
             username = name;
             write_stream(&stream, Message::Ok);
+            println!("Logged in as {}", username);
         }
         _ => {
             write_error(&stream, "You need to login");
@@ -51,17 +53,17 @@ fn handle_connection(stream: TcpStream) {
                 write_stream(&stream, Message::Ok);
             }
 
+            Message::Set(dataname) => {
+                set_data(&stream, &dataname);
+            }
+
             Message::Get(dataname) => {
                 
             }
 
-            Message::Set(dataname) => {
-
-            }
-
             Message::Exit => {
                 write_stream(&stream, Message::Ok);
-                eprintln!("Exited Ok");
+                println!("Exited Ok");
                 break
             },
 
@@ -77,4 +79,14 @@ fn handle_connection(stream: TcpStream) {
 
 fn write_error(stream: &TcpStream, message: &str) {
     write_stream(&stream, Message::Error(String::from(message)));
+}
+
+fn set_data(stream: &TcpStream, dataname: &str) {
+    if let Message::Length(len) = send_receive(&stream, Message::Ok, 16) {
+        if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
+            if let Ok(_) = fs::write(format!("{}.txt", dataname), data) {
+                write_stream(&stream, Message::Ok);
+            }
+        }
+    }
 }
