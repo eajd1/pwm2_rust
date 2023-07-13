@@ -16,7 +16,7 @@ fn main() -> std::io::Result<()> {
     // Login
     let mut username = SMsg::new_plain(&get_input("Enter Username: "));
     username = username.encrypt(&get_input("Enter Password: "));
-    write_stream(&stream, Message::Login(username));
+    write_stream(&stream, Message::Login(username.to_string_hex()));
     match read_stream(&stream, 16) {
         Some(Message::Ok) => println!("Logged in"),
         Some(Message::Error(error)) => eprintln!("{}", error),

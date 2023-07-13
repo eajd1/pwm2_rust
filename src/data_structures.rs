@@ -255,62 +255,14 @@ pub mod client_data {
 
 
 
-// Server Side
-
-pub mod server_data {
-    use super::client_data::*;
-    use std::collections::HashMap;
-    
-    pub struct UserDataMap (HashMap<String, HashMap<String, SMsg>>);
-    
-    impl UserDataMap {
-    
-        pub fn new() -> UserDataMap {
-            UserDataMap(HashMap::new())
-        }
-    
-        /// Returns [Ok] if successful, and [Err] if unsuccessful
-        pub fn add_user(&mut self, username: &str) -> Result<(), ()> {
-            if !self.0.contains_key(username) {
-                self.0.insert(String::from(username), HashMap::new());
-                Ok(())
-            }
-            else {
-                Err(())
-            }
-        }
-    
-        /// Returns [Ok] if successful, and [Err] if unsuccessful
-        pub fn set_data(&mut self, username: &str, dataname: &str, data: SMsg) -> Result<(), ()> {
-            if let Some(user_entry) = self.0.get_mut(username) {
-                if !user_entry.contains_key(dataname) {
-                    user_entry.insert(String::from(dataname), data);
-                    return Ok(());
-                }
-            }
-            Err(())
-        }
-    
-        /// Returns [Some(data)] if there is data, else returns [None]
-        pub fn get_data(&mut self, username: &str, dataname: &str) -> Option<&SMsg> {
-            if let Some(user_entry) = self.0.get(username) {
-                return user_entry.get(dataname);
-            }
-            None
-        }
-    }
-}
-
-
-use self::client_data::SMsg;
 
 /// [Message] used as an intermediary for [TcpStream] messages
 pub enum Message {
     Exit,
     Ok,
     Error(String),
-    Login(SMsg),
-    Data(SMsg),
+    Login(String),
+    Data(String),
     Get(String),
     Set(String),
     Length(usize),
@@ -326,17 +278,11 @@ impl Message {
             str if str.starts_with("Error ") => 
                 Self::Error(str.trim_start_matches("Error ").to_string()),
 
-            str if str.starts_with("Login ") => {
-                Self::Login(SMsg::new_cypher_bytes( // cypher because everything should already encrypted
-                    str.trim_start_matches("Login ")
-                ))
-            },
+            str if str.starts_with("Login ") => 
+                Self::Login(str.trim_start_matches("Login ").to_string()),
 
-            str if str.starts_with("Data ") => {
-                Self::Data(SMsg::new_cypher_bytes( // cypher because everything should already encrypted
-                    str.trim_start_matches("Data ")
-                ))
-            },
+            str if str.starts_with("Data ") => 
+                Self::Data(str.trim_start_matches("Data ").to_string()),
 
             str if str.starts_with("Get ") => 
                 Self::Get(str.trim_start_matches("Get ").to_string()),
@@ -361,8 +307,8 @@ impl Message {
             Message::Exit => String::from("Exit"),
             Message::Ok => String::from("Ok"),
             Message::Error(str) => String::from("Error ") + &str,
-            Message::Login(block) => String::from("Login ") + &block.to_string_hex(),
-            Message::Data(block) => String::from("Data ") + &block.to_string_hex(),
+            Message::Login(str) => String::from("Login ") + &str,
+            Message::Data(str) => String::from("Data ") + &str,
             Message::Get(str) => String::from("Get ") + &str,
             Message::Set(str) => String::from("Set ") + &str,
             Message::Length(num) => String::from("Length ") + &num.to_string(),

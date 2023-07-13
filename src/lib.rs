@@ -72,7 +72,7 @@ fn save_file(content: String) {
     }
 }
 
-pub fn new_file() -> SMsg {
+pub fn new_file() -> String {
     let input = get_input("Enter file name or message: ");
 
     // File input
@@ -91,7 +91,7 @@ pub fn new_file() -> SMsg {
 
     // Output
     // save_file(msg.to_string_hex());
-    msg
+    msg.to_string_hex()
 }
 
 pub fn open_file() {
