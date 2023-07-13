@@ -157,22 +157,12 @@ pub mod client_data {
         }
     
         /// Converts a normal string into an SMsg::PlainText
-        pub fn new_plain(string: &str) -> SMsg {
+        pub fn plain_from_str(string: &str) -> SMsg {
             SMsg::PlainText(SMsg::from_bytes(string.as_bytes()))
         }
     
-        /// Converts a normal string into an SMsg::CypherText
-        pub fn new_cypher(string: &str) -> SMsg {
-            SMsg::CypherText(SMsg::from_bytes(string.as_bytes()))
-        }
-    
-        /// Converts a string of bytes into SMsg::PlainText
-        pub fn new_plain_bytes(string: &str) -> SMsg {
-            SMsg::PlainText(SMsg::parse_bytes(string))
-        }
-    
         /// Converts a string of bytes into SMsg::CypherText
-        pub fn new_cypher_bytes(string: &str) -> SMsg {
+        pub fn cypher_from_hex(string: &str) -> SMsg {
             SMsg::CypherText(SMsg::parse_bytes(string))
         }
     

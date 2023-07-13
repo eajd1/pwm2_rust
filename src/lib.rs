@@ -84,7 +84,7 @@ pub fn new_file() -> String {
     let password = get_input("Enter password: ");
 
     // Encryption
-    let mut msg = SMsg::new_plain(&file);
+    let mut msg = SMsg::plain_from_str(&file);
     let start = Instant::now();
     msg = msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
@@ -100,7 +100,7 @@ pub fn open_file() {
     let password = get_input("Enter password: ");
 
     // Decryption
-    let mut msg = SMsg::new_cypher_bytes(&file);
+    let mut msg = SMsg::cypher_from_hex(&file);
     let start = Instant::now();
     msg = msg.decrypt(&password);
     println!("Decrypted in: {:?}", start.elapsed());

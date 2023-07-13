@@ -14,7 +14,7 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("192.168.0.31:51104")?;
 
     // Login
-    let mut username = SMsg::new_plain(&get_input("Enter Username: "));
+    let mut username = SMsg::plain_from_str(&get_input("Enter Username: "));
     username = username.encrypt(&get_input("Enter Password: "));
     write_stream(&stream, Message::Login(username.to_string_hex()));
     match read_stream(&stream, 16) {
@@ -42,8 +42,13 @@ fn main() -> std::io::Result<()> {
                 let data_name = get_input("Enter Name: ");
                 if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
                     if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
+                        let data = SMsg::cypher_from_hex(&data);
+                        let data = data.decrypt(&get_input("Enter Password: "));
                         println!("{}", data.to_string());
                     }
+                }
+                else {
+                    println!("That data doesn't exist");
                 }
             },
             "exit" => break,

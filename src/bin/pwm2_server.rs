@@ -58,7 +58,7 @@ fn handle_connection(stream: TcpStream) {
             }
 
             Message::Get(dataname) => {
-                
+                get_data(&stream, &dataname);
             }
 
             Message::Exit => {
@@ -88,5 +88,16 @@ fn set_data(stream: &TcpStream, dataname: &str) {
                 write_stream(&stream, Message::Ok);
             }
         }
+    }
+}
+
+fn get_data(stream: &TcpStream, dataname: &str) {
+    if let Ok(data) = fs::read_to_string(format!("{}.txt", dataname)) {
+        if let Message::Ok = send_receive(stream, Message::Length(data.len()), 16) {
+            write_stream(stream, Message::Data(data));
+        }
+    }
+    else {
+        write_error(stream, "Couldn't read file");
     }
 }
