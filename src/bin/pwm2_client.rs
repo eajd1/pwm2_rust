@@ -18,8 +18,8 @@ fn main() -> std::io::Result<()> {
     username = username.encrypt(&get_input("Enter Password: "));
     write_stream(&stream, Message::Login(username.to_string_hex()));
     match read_stream(&stream, 16) {
-        Some(Message::Ok) => println!("Logged in"),
-        Some(Message::Error(error)) => eprintln!("{}", error),
+        Message::Ok => println!("Logged in"),
+        Message::Error(error) => eprintln!("{}", error),
         _ => eprintln!("Communication Error"),
     }
 
@@ -29,10 +29,10 @@ fn main() -> std::io::Result<()> {
             "new" => {
                 let data = new_file();
                 let data_name = get_input("Enter Name: ");
-                if let Some(Message::Ok) = send_receive(&stream, Message::Set(data_name), 16) {
-                    if let Some(Message::Ok) = send_receive(&stream, Message::Length(data.len()), 16) {
+                if let Message::Ok = send_receive(&stream, Message::Set(data_name), 16) {
+                    if let Message::Ok = send_receive(&stream, Message::Length(data.len()), 16) {
                         match send_receive(&stream, Message::Data(data), 16) {
-                            Some(Message::Error(err)) => eprintln!("{}", err),
+                            Message::Error(err) => eprintln!("{}", err),
                             _ => (),
                         }
                     }
@@ -40,8 +40,8 @@ fn main() -> std::io::Result<()> {
             },
             "open" => {
                 let data_name = get_input("Enter Name: ");
-                if let Some(Message::Length(len)) = send_receive(&stream, Message::Get(data_name), 16) {
-                    if let Some(Message::Data(data)) = send_receive(&stream, Message::Ok, len) {
+                if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
+                    if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
                         println!("{}", data.to_string());
                     }
                 }

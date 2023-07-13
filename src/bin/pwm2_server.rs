@@ -33,54 +33,43 @@ fn handle_connection(stream: TcpStream) {
 
     let mut username: String;
     match read_stream(&stream, 128) {
-        Some(Message::Login(name)) => {
+        Message::Login(name) => {
             username = name;
             write_stream(&stream, Message::Ok);
         }
-        Some(_) => {
+        _ => {
             write_error(&stream, "You need to login");
-            return
-        }
-        None => {
-            write_error(&stream, "Communication Error");
             return
         }
     }
     
     loop {
-        if let Some(message) = read_stream(&stream, 128) {
-            match message {
+        match read_stream(&stream, 16) {
 
-                Message::Login(user) => {
-                    username = user;
-                    write_stream(&stream, Message::Ok);
-                }
-
-                Message::Get(dataname) => {
-                    
-                }
-
-                Message::Set(dataname) => {
-                    
-                }
-
-                Message::Exit => {
-                    write_stream(&stream, Message::Ok);
-                    eprintln!("Exited Ok");
-                    break
-                },
-
-                msg => { // Not valid command
-                    write_error(&stream, "Invalid Command");
-                    eprintln!("Invalid Command: {}", msg.to_string());
-                    break
-                }
+            Message::Login(user) => {
+                username = user;
+                write_stream(&stream, Message::Ok);
             }
-        }
-        else {
-            write_error(&stream, "Communication Error");
-            eprintln!("Communication Error");
-            break
+
+            Message::Get(dataname) => {
+                
+            }
+
+            Message::Set(dataname) => {
+
+            }
+
+            Message::Exit => {
+                write_stream(&stream, Message::Ok);
+                eprintln!("Exited Ok");
+                break
+            },
+
+            msg => { // Not valid command
+                write_error(&stream, "Invalid Command");
+                eprintln!("Invalid Command: {}", msg.to_string());
+                break
+            }
         }
     }
     println!("Closed connection from: {}", stream.peer_addr().unwrap());
