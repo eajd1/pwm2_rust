@@ -26,7 +26,7 @@ fn main() -> std::io::Result<()> {
         match input.to_lowercase().as_str() {
             "new" => {
                 let data = new_file();
-                let data_name = get_input("Enter Name: ");
+                let data_name = get_input("Enter file Name: ");
                 if let Message::Ok = send_receive(&stream, Message::Set(data_name), 16) {
                     if let Message::Ok = send_receive(&stream, Message::Length(data.len()), 16) {
                         match send_receive(&stream, Message::Data(data), 16) {
@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
                 }
             },
             "open" => {
-                let data_name = get_input("Enter Name: ");
+                let data_name = get_input("Enter file Name: ");
                 if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
                     if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
                         let data = SMsg::cypher_from_hex(&data);
