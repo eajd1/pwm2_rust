@@ -250,6 +250,7 @@ pub mod client_data {
 pub enum Message {
     Exit,
     Ok,
+    List,
     Error(String),
     Login(String),
     Data(String),
@@ -264,6 +265,7 @@ impl Message {
         match string {
             "Exit" => Self::Exit,
             "Ok" => Self::Ok,
+            "List" => Self::List,
 
             str if str.starts_with("Error ") => 
                 Self::Error(str.trim_start_matches("Error ").to_string()),
@@ -296,6 +298,7 @@ impl Message {
         match self {
             Message::Exit => String::from("Exit"),
             Message::Ok => String::from("Ok"),
+            Message::List => String::from("List"),
             Message::Error(str) => String::from("Error ") + &str,
             Message::Login(str) => String::from("Login ") + &str,
             Message::Data(str) => String::from("Data ") + &str,

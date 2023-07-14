@@ -17,6 +17,7 @@ fn main() -> std::io::Result<()> {
     for stream in tcp_listener.incoming() {
         match stream {
             Ok(stream) => {
+                // No limit on the number of threads that can be spawned
                 thread::spawn(move || {
                     handle_connection(stream);
                 });
@@ -61,6 +62,8 @@ fn handle_connection(stream: TcpStream) {
                 get_data(&stream, &username, &dataname);
             }
 
+            Message::List => send_list(&stream, &username),
+
             Message::Exit => {
                 write_stream(&stream, Message::Ok);
                 println!("Exited Ok");
@@ -68,7 +71,7 @@ fn handle_connection(stream: TcpStream) {
             },
 
             msg => { // Not valid command
-                write_error(&stream, "Invalid Command");
+                write_error(&stream, &format!("Invalid Command: {}", msg.to_string()));
                 eprintln!("Invalid Command: {}", msg.to_string());
                 break
             }
@@ -99,5 +102,24 @@ fn get_data(stream: &TcpStream, username: &str, dataname: &str) {
     }
     else {
         write_error(stream, "Couldn't read file");
+    }
+}
+
+fn send_list(stream: &TcpStream, username: &str) {
+    let mut files = String::new();
+    for file in fs::read_dir("./").unwrap() {
+        if let Ok(file) = file {
+            if let Some(file_name) = file.file_name().to_str() {
+                if file_name.starts_with(username) {
+                    files += file_name
+                        .trim_start_matches(&format!("{}-", username))
+                        .trim_end_matches(".txt");
+                    files += "\n";
+                }
+            }
+        }
+    }
+    if let Message::Ok = send_receive(stream, Message::Length(files.len()), 16) {
+        write_stream(stream, Message::Data(files));
     }
 }

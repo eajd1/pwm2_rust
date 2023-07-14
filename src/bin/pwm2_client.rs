@@ -22,7 +22,7 @@ fn main() -> std::io::Result<()> {
     }
 
     loop {
-        let input = get_input("new | open | exit: ");
+        let input = get_input("new | open | list | exit: ");
         match input.to_lowercase().as_str() {
             "new" => {
                 let data = new_file();
@@ -47,6 +47,13 @@ fn main() -> std::io::Result<()> {
                 }
                 else {
                     println!("That data doesn't exist");
+                }
+            },
+            "list" => {
+                if let Message::Length(len) = send_receive(&stream, Message::List, 16) {
+                    if let Message::Data(files) = send_receive(&stream, Message::Ok, len) {
+                        println!("{}", files);
+                    }
                 }
             },
             "exit" => break,
