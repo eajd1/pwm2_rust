@@ -8,10 +8,16 @@ use std::{
     net::{TcpListener, TcpStream},
     thread,
     fs,
+    path::Path,
 };
 
 
 fn main() -> std::io::Result<()> {
+
+    if let Err(err) = fs::create_dir("./files") {
+        eprintln!("{}", err);
+    }
+
     let tcp_listener = TcpListener::bind("192.168.0.31:51104")?;
     
     for stream in tcp_listener.incoming() {
@@ -37,6 +43,7 @@ fn handle_connection(stream: TcpStream) {
         Message::Login(name) => {
             username = name.trim_end().to_string();
             write_stream(&stream, Message::Ok);
+            create_dir(&username);
             println!("Logged in as {}", username);
         }
         _ => {
@@ -51,6 +58,7 @@ fn handle_connection(stream: TcpStream) {
             Message::Login(name) => {
                 username = name.trim_end().to_string();
                 write_stream(&stream, Message::Ok);
+                create_dir(&username);
                 println!("Logged in as {}", username);
             }
 
@@ -87,7 +95,7 @@ fn write_error(stream: &TcpStream, message: &str) {
 fn set_data(stream: &TcpStream, username: &str, dataname: &str) {
     if let Message::Length(len) = send_receive(&stream, Message::Ok, 16) {
         if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
-            if let Ok(_) = fs::write(format!("{}-{}.txt", username, dataname), data) {
+            if let Ok(_) = fs::write(Path::new(&format!("./files/{}/{}.txt", username, dataname)), data) {
                 write_stream(&stream, Message::Ok);
             }
         }
@@ -95,7 +103,7 @@ fn set_data(stream: &TcpStream, username: &str, dataname: &str) {
 }
 
 fn get_data(stream: &TcpStream, username: &str, dataname: &str) {
-    if let Ok(data) = fs::read_to_string(format!("{}-{}.txt", username, dataname)) {
+    if let Ok(data) = fs::read_to_string(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
         if let Message::Ok = send_receive(stream, Message::Length(data.len()), 16) {
             write_stream(stream, Message::Data(data));
         }
@@ -121,5 +129,11 @@ fn send_list(stream: &TcpStream, username: &str) {
     }
     if let Message::Ok = send_receive(stream, Message::Length(files.len()), 16) {
         write_stream(stream, Message::Data(files));
+    }
+}
+
+fn create_dir(name: &str) {
+    if let Err(err) = fs::create_dir(&format!("./files/{}", name)) {
+        eprintln!("{}", err);
     }
 }
