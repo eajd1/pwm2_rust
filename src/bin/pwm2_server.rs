@@ -95,10 +95,20 @@ fn write_error(stream: &TcpStream, message: &str) {
 fn set_data(stream: &TcpStream, username: &str, dataname: &str) {
     if let Message::Length(len) = send_receive(&stream, Message::Ok, 16) {
         if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
-            if let Ok(_) = fs::write(Path::new(&format!("./files/{}/{}.txt", username, dataname)), data) {
-                write_stream(&stream, Message::Ok);
+            if let Err(err) = fs::write(Path::new(&format!("./files/{}/{}.txt", username, dataname)), data) {
+                eprintln!("{}", err);
+                write_error(stream, &err.to_string());
+            }
+            else {
+                write_stream(stream, Message::Ok);
             }
         }
+        else {
+            write_error(stream, "Invalid message");
+        }
+    }
+    else {
+        write_error(stream, "Invalid message");
     }
 }
 
@@ -106,6 +116,9 @@ fn get_data(stream: &TcpStream, username: &str, dataname: &str) {
     if let Ok(data) = fs::read_to_string(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
         if let Message::Ok = send_receive(stream, Message::Length(data.len()), 16) {
             write_stream(stream, Message::Data(data));
+        }
+        else {
+            write_error(stream, "Invalid message");
         }
     }
     else {
@@ -129,6 +142,9 @@ fn send_list(stream: &TcpStream, username: &str) {
     }
     if let Message::Ok = send_receive(stream, Message::Length(files.len()), 16) {
         write_stream(stream, Message::Data(files));
+    }
+    else {
+        write_error(stream, "Invalid message");
     }
 }
 
