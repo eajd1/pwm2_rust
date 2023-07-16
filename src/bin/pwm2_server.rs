@@ -128,15 +128,12 @@ fn get_data(stream: &TcpStream, username: &str, dataname: &str) {
 
 fn send_list(stream: &TcpStream, username: &str) {
     let mut files = String::new();
-    for file in fs::read_dir("./").unwrap() {
+    for file in fs::read_dir(Path::new(&format!("./files/{}/", username))).unwrap() {
         if let Ok(file) = file {
             if let Some(file_name) = file.file_name().to_str() {
-                if file_name.starts_with(username) {
-                    files += file_name
-                        .trim_start_matches(&format!("{}-", username))
-                        .trim_end_matches(".txt");
-                    files += "\n";
-                }
+                files += file_name
+                    .trim_end_matches(".txt");
+                files += "\n";
             }
         }
     }
