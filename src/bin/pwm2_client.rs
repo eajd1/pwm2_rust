@@ -22,32 +22,17 @@ fn main() -> std::io::Result<()> {
     }
 
     loop {
-        let input = get_input("new | open | list | exit: ");
+        let input = get_input("new | open | edit | list | exit: ");
         match input.to_lowercase().as_str() {
             "new" => {
-                let data = new_file();
-                let data_name = get_input("Enter file Name: ");
-                if let Message::Ok = send_receive(&stream, Message::Set(data_name), 16) {
-                    if let Message::Ok = send_receive(&stream, Message::Length(data.len()), 16) {
-                        match send_receive(&stream, Message::Data(data), 16) {
-                            Message::Error(err) => eprintln!("{}", err),
-                            _ => (),
-                        }
-                    }
-                }
+                new(&stream, new_file());
             },
             "open" => {
-                let data_name = get_input("Enter file Name: ");
-                if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
-                    if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
-                        let data = SMsg::cypher_from_hex(&data);
-                        let data = data.decrypt(&get_input("Enter Password: "));
-                        println!("{}", data.to_string());
-                    }
-                }
-                else {
-                    println!("That data doesn't exist");
-                }
+                println!("{}", open(&stream));
+            },
+            "edit" => {
+                let data = edit(open(&stream));
+                new(&stream, data);
             },
             "list" => {
                 if let Message::Length(len) = send_receive(&stream, Message::List, 16) {
@@ -66,4 +51,41 @@ fn main() -> std::io::Result<()> {
     stream.shutdown(std::net::Shutdown::Both)?;
 
     Ok(())
+}
+
+/// Sends to given [String] to the [TcpStream]
+fn new(stream: &TcpStream, data: String) {
+    let data_name = get_input("Enter name to use: ");
+    if let Message::Ok = send_receive(stream, Message::Set(data_name), 16) {
+        if let Message::Ok = send_receive(stream, Message::Length(data.len()), 16) {
+            match send_receive(stream, Message::Data(data), 16) {
+                Message::Error(err) => eprintln!("{}", err),
+                _ => (),
+            }
+        }
+    }
+}
+
+/// Recieves a [String] from the [TcpStream]
+fn open(stream: &TcpStream) -> String {
+    let data_name = get_input("Enter file Name: ");
+    if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
+        if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
+            let data = SMsg::cypher_from_hex(&data);
+            let data = data.decrypt(&get_input("Enter Password: "));
+            return data.to_string();
+        }
+        else {
+            return String::from("Didn't recieve data");
+        }
+    }
+    else {
+        return String::from("Data doesn't exist");
+    }
+}
+
+/// Provides a command line [String] editor
+fn edit(data: String) -> String {
+    // TODO
+    String::new()
 }
