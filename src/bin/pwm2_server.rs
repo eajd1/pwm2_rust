@@ -72,22 +72,7 @@ fn handle_connection(stream: TcpStream) {
 
             Message::List => send_list(&stream, &username),
 
-            Message::Remove(dataname) => {
-                if let Ok(_) = fs::metadata(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
-                    if let Message::Remove(_) = send_receive(&stream, Message::Ok, 16) {
-                        if let Err(err) = fs::remove_file(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
-                            println!("{}", err);
-                            write_error(&stream, &format!("Error removing '{}'", dataname));
-                        }
-                        else {
-                            write_stream(&stream, Message::Ok);
-                        }
-                    }
-                }
-                else {
-                    write_error(&stream, &format!("File '{}' does not exist", dataname));
-                }
-            }
+            Message::Remove(dataname) => remove_file(&stream, &dataname, &username),
 
             Message::Exit => {
                 write_stream(&stream, Message::Ok);
@@ -165,5 +150,22 @@ fn send_list(stream: &TcpStream, username: &str) {
 fn create_dir(name: &str) {
     if let Err(err) = fs::create_dir(&format!("./files/{}", name)) {
         eprintln!("{}", err);
+    }
+}
+
+fn remove_file(stream: &TcpStream, name: &str, username: &str) {
+    if let Ok(_) = fs::metadata(Path::new(&format!("./files/{}/{}.txt", username, name))) {
+        if let Message::Remove(_) = send_receive(stream, Message::Ok, 16) {
+            if let Err(err) = fs::remove_file(Path::new(&format!("./files/{}/{}.txt", username, name))) {
+                println!("{}", err);
+                write_error(stream, &format!("Error removing '{}'", name));
+            }
+            else {
+                write_stream(stream, Message::Ok);
+            }
+        }
+    }
+    else {
+        write_error(stream, &format!("File '{}' does not exist", name));
     }
 }
