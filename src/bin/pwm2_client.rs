@@ -99,7 +99,7 @@ fn new(stream: &TcpStream, data: String) {
 
 /// Recieves a [String] from the [TcpStream]
 fn open(stream: &TcpStream) -> String {
-    let data_name = get_input("Enter file Name: ");
+    let data_name = get_input("Enter Filename: ");
     if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
         if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
             let data = SMsg::cypher_from_hex(&data);

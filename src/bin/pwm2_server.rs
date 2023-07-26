@@ -72,6 +72,23 @@ fn handle_connection(stream: TcpStream) {
 
             Message::List => send_list(&stream, &username),
 
+            Message::Remove(dataname) => {
+                if let Ok(_) = fs::metadata(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
+                    if let Message::Remove(_) = send_receive(&stream, Message::Ok, 16) {
+                        if let Err(err) = fs::remove_file(Path::new(&format!("./files/{}/{}.txt", username, dataname))) {
+                            println!("{}", err);
+                            write_error(&stream, &format!("Error removing '{}'", dataname));
+                        }
+                        else {
+                            write_stream(&stream, Message::Ok);
+                        }
+                    }
+                }
+                else {
+                    write_error(&stream, &format!("File '{}' does not exist", dataname));
+                }
+            }
+
             Message::Exit => {
                 write_stream(&stream, Message::Ok);
                 println!("Exited Ok");
