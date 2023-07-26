@@ -257,6 +257,7 @@ pub enum Message {
     Get(String),
     Set(String),
     Length(usize),
+    Remove(String),
 }
 
 impl Message {
@@ -289,6 +290,9 @@ impl Message {
                 Self::Length(length)
             }
 
+            str if str.starts_with("Remove ") => 
+                Self::Set(str.trim_start_matches("Remove ").to_string()),
+
             _ => Self::Error(String::from("Invalid Message"))
         }
     }
@@ -305,6 +309,7 @@ impl Message {
             Message::Get(str) => String::from("Get ") + &str,
             Message::Set(str) => String::from("Set ") + &str,
             Message::Length(num) => String::from("Length ") + &num.to_string(),
+            Message::Remove(str) => String::from("Remove ") + &str,
         }
     }
 }

@@ -21,8 +21,9 @@ fn main() -> std::io::Result<()> {
         _ => eprintln!("Communication Error"),
     }
 
+    println!("type 'help' for list of commands");
     loop {
-        let input = get_input("new | open | edit | list | exit: ");
+        let input = get_input(":> ");
         match input.to_lowercase().as_str() {
             "new" => {
                 new(&stream, new_file());
@@ -31,8 +32,9 @@ fn main() -> std::io::Result<()> {
                 println!("{}", open(&stream));
             },
             "edit" => {
-                let data = edit(open(&stream));
-                new(&stream, data);
+                println!("Editing is not implemented yet");
+                // let data = edit(open(&stream));
+                // new(&stream, data);
             },
             "list" => {
                 if let Message::Length(len) = send_receive(&stream, Message::List, 16) {
@@ -41,8 +43,37 @@ fn main() -> std::io::Result<()> {
                     }
                 }
             },
+            "remove" => {
+                let filename = get_input("Enter Filename: ");
+                match send_receive(&stream, Message::Remove(filename.clone()), 16) {
+                    Message::Ok => {
+                        if filename == get_input("Type the filename again to confirm: ") {
+                            if let Message::Ok = send_receive(&stream, Message::Remove(filename), 16) {
+                                println!("File has been removed");
+                            }
+                            else {
+                                println!("An Error Occured");
+                            }
+                        }
+                    },
+                    Message::Error(err) => println!("{}", err),
+                    _ => (),
+                }
+            },
+            "help" => {
+                println!();
+                println!("Available Commands:");
+                println!("new - Creates a new file");
+                println!("open - Opens an existing file");
+                println!("edit - Edits an existing file");
+                println!("list - Lists files available to you");
+                println!("remove - Deletes an existing file");
+                println!("help - This is the help");
+                println!("exit - Exits the program");
+                println!();
+            }
             "exit" => break,
-            _ => println!("Incorrect Input"),
+            _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
     }
 
