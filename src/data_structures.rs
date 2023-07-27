@@ -291,7 +291,7 @@ impl Message {
             }
 
             str if str.starts_with("Remove ") => 
-                Self::Set(str.trim_start_matches("Remove ").to_string()),
+                Self::Remove(str.trim_start_matches("Remove ").to_string()),
 
             _ => Self::Error(String::from("Invalid Message"))
         }
