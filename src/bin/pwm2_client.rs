@@ -1,6 +1,7 @@
 use pwm2_rust::{
     get_input,
-    new_file,
+    get_password,
+    new_message,
     send_receive,
     data_structures::{Message, client_data::SMsg},
     write_stream,
@@ -13,7 +14,7 @@ fn main() -> std::io::Result<()> {
 
     // Login
     let mut username = SMsg::plain_from_str(&get_input("Enter Username: "));
-    username = username.encrypt(&get_input("Enter Password: "));
+    username = username.encrypt(&get_password("Enter Password: "));
     write_stream(&stream, Message::Login(username.to_string_hex()));
     match read_stream(&stream, 16) {
         Message::Ok => println!("Logged in"),
@@ -26,7 +27,7 @@ fn main() -> std::io::Result<()> {
         let input = get_input(":> ");
         match input.to_lowercase().as_str() {
             "new" => {
-                new(&stream, new_file());
+                new(&stream, new_message());
             },
             "open" => {
                 println!("{}", open(&stream));

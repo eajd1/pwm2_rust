@@ -9,6 +9,8 @@ use sha2::{Sha512, Digest};
 pub mod data_structures;
 use data_structures::{client_data::*, Message};
 
+use rpassword::read_password;
+
 /// Shows message in the console and reads a line input
 pub fn get_input(message: &str) -> String {
     // User input
@@ -17,6 +19,21 @@ pub fn get_input(message: &str) -> String {
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
     return input.trim_end().to_string();
+}
+
+/// Shows message in the console and reads a line input without showing it
+pub fn get_password(message: &str) -> String {
+    loop {
+        print!("{}", message);
+        stdout().flush().unwrap();
+        match read_password() {
+            Ok(password) => return password,
+            Err(_) => {
+                println!("Couldnt read password");
+                continue;
+            },
+        }
+    }
 }
 
 /// Returns the SHA512 hash of the given &str
@@ -31,16 +48,17 @@ pub fn get_hash(password: &str) -> Block512 {
 /// Reads text from a file or the input and encrypts it with a password
 /// 
 /// Returns the result of the encryption as a hex string
-pub fn new_file() -> String {
-    let input = get_input("Enter file name or message: ");
+pub fn new_message() -> String {
+    let input = get_input("Enter message: ");
 
     // File input
-    let file = match fs::read_to_string(&input) {
-        Ok(x) => x,
-        Err(_) => input,
-    };
+    // let file = match fs::read_to_string(&input) {
+    //     Ok(x) => x,
+    //     Err(_) => input,
+    // };
+    let file = input;
 
-    let password = get_input("Enter password: ");
+    let password = get_password("Enter password: ");
 
     // Encryption
     let mut msg = SMsg::plain_from_str(&file);
