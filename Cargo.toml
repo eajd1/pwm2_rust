@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 sha2 = "0.10.0"
-rpassword = "0.0.4"
+rpassword = "7.2.0"

@@ -199,7 +199,7 @@ pub mod client_data {
                     }
                 },
             }
-            return string;
+            return string.trim_end().to_string();
         }
     
         pub fn encrypt(self, password: &str) -> SMsg {
