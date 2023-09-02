@@ -32,7 +32,7 @@ fn main() {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", username))));
             },
             "remove" => {
-                println!("Todo");
+                remove_file(&get_input("Enter file name: "), &username);
             },
             "help" => {
                 println!();
@@ -47,6 +47,7 @@ fn main() {
                 println!();
             }
             "exit" => break,
+            "" => continue,
             _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
     }
@@ -88,4 +89,19 @@ fn list_dir(path: &Path) -> String {
         }
     }
     return files;
+}
+
+fn remove_file(file_name: &str, username: &str) {
+    let path = &format!("./files/{}/{}.txt", username, file_name);
+    if let Ok(_) = fs::metadata(Path::new(path)) {
+        if let Err(err) = fs::remove_file(Path::new(path)) {
+            eprintln!("Error removing file: {}", err);
+        }
+        else {
+            println!("'{}' removed", file_name);
+        }
+    }
+    else {
+        eprintln!("File '{}' doesnt exist", file_name);
+    }
 }
