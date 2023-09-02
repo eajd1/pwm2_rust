@@ -104,7 +104,7 @@ fn open(stream: &TcpStream) -> String {
     if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
         if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
             let data = SMsg::cypher_from_hex(&data);
-            let data = data.decrypt(&get_input("Enter Password: "));
+            let data = data.decrypt(&get_password("Enter Password: "));
             return data.to_string();
         }
         else {
