@@ -9,8 +9,7 @@ use std::{fs, path::Path};
 fn main() {
     create_dir("./files");
 
-    let username = SMsg::plain_from_str(&get_input("Enter Username: "));
-    let username = username.encrypt(&get_password("Enter Password: ")).to_string_hex();
+    let username = get_username();
     create_dir(&format!("./files/{}", username));
 
     println!("type 'help' for list of commands");
@@ -51,6 +50,16 @@ fn main() {
             _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
     }
+}
+
+fn get_username() -> String {
+    let mut username = get_input("Enter Username: ");
+    while username.is_empty()  {
+        username = get_input("Enter Username: ");
+    }
+    let username = SMsg::plain_from_str(&username);
+    let username = username.encrypt(&get_password("Enter Password: ")).to_string_hex();
+    return username;
 }
 
 fn create_dir(path: &str) {
