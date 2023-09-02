@@ -3,6 +3,7 @@ use pwm2_rust::{
     get_input,
     new_message,
     get_password,
+    edit::Edit,
 };
 use std::{fs, path::Path};
 
@@ -25,6 +26,8 @@ fn main() {
                 println!("{}", data);
             },
             "edit" => {
+                let test = Edit::new();
+                test.edit();
                 println!("Todo");
             },
             "list" => {

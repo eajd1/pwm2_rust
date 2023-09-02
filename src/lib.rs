@@ -7,6 +7,7 @@ use std::{
 use sha2::{Sha512, Digest};
 
 pub mod data_structures;
+pub mod edit;
 use data_structures::{client_data::*, Message};
 
 use rpassword::read_password;
