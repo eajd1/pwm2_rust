@@ -88,6 +88,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "keyboard"
+version = "0.1.0"
+dependencies = [
+ "device_query",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -120,6 +127,7 @@ name = "pwm2_rust"
 version = "0.1.0"
 dependencies = [
  "device_query",
+ "keyboard",
  "rpassword",
  "sha2",
 ]

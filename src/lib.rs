@@ -72,6 +72,23 @@ pub fn new_message() -> String {
     msg.to_string_hex()
 }
 
+/// Encrypts the given message by the password input
+/// 
+/// Returns the encryption as hex string
+pub fn encrypt_message(message: String) -> String {
+    let password = get_password("Enter password: ");
+
+    // Encryption
+    let mut msg = SMsg::plain_from_str(&message);
+    let start = Instant::now();
+    msg = msg.encrypt(&password);
+    println!("Encrypted in: {:?}", start.elapsed());
+
+    // Output
+    // save_file(msg.to_string_hex());
+    msg.to_string_hex()
+}
+
 
 // For use with TcpStream
 

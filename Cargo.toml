@@ -9,3 +9,4 @@ edition = "2021"
 sha2 = "0.10.0"
 rpassword = "7.2.0"
 device_query = "1.1.3"
+keyboard = {path = "../keyboard"}

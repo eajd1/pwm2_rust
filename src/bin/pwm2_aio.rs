@@ -4,6 +4,7 @@ use pwm2_rust::{
     new_message,
     get_password,
     edit::Edit,
+    encrypt_message,
 };
 use std::{fs, path::Path};
 
@@ -25,10 +26,18 @@ fn main() {
                 let data = open_file(&get_input("Enter file name: "), &username);
                 println!("{}", data);
             },
+            "append" => {
+                let file_name = get_input("Enter file name: ");
+                let data = open_file(&file_name, &username);
+                println!("\nCurrent file contents:");
+                println!("{}\n", data);
+                append_file(&file_name, &username, data);
+            }
             "edit" => {
-                let test = Edit::new();
-                test.edit();
-                println!("Todo");
+                // let data = open_file(&get_input("Enter file name: "), &username);
+                // let mut test = Edit::from_string(data);
+                // test.edit();
+                todo!();
             },
             "list" => {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", username))));
@@ -39,13 +48,14 @@ fn main() {
             "help" => {
                 println!();
                 println!("Available Commands:");
-                println!("new - Creates a new file");
-                println!("open - Opens an existing file");
-                println!("edit - Edits an existing file");
-                println!("list - Lists files available to you");
+                println!("new    - Creates a new file");
+                println!("open   - Opens an existing file");
+                println!("append - Append given input to an existing file");
+                println!("edit   - Edits an existing file");
+                println!("list   - Lists files available to you");
                 println!("remove - Deletes an existing file");
-                println!("help - This is the help");
-                println!("exit - Exits the program");
+                println!("help   - This is it");
+                println!("exit   - Exits the program");
                 println!();
             }
             "exit" => break,
@@ -87,6 +97,21 @@ fn open_file(file_name: &str, username: &str) -> String {
             let data = data.decrypt(&get_password("Enter Password: "));
             return data.to_string();
         },
+    }
+}
+
+fn append_file(file_name: &str, username: &str, data: String) {
+    loop {
+        let new_data = data.clone() + "\n" + &get_input("Enter data to append: ");
+        println!("New file contents:\n{}\n", new_data);
+        match get_input("Save these contents (y/n) - Press Enter to try again: ").to_lowercase().as_str() {
+            "y" => {
+                new_file(file_name, username, encrypt_message(new_data));
+                break;
+            },
+            "n" => break,
+            _ => continue,
+        }
     }
 }
 
