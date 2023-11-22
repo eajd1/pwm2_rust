@@ -34,10 +34,10 @@ fn main() {
                 append_file(&file_name, &username, data);
             }
             "edit" => {
-                // let data = open_file(&get_input("Enter file name: "), &username);
-                // let mut test = Edit::from_string(data);
-                // test.edit();
-                todo!();
+                let data = open_file(&get_input("Enter file name: "), &username);
+                let mut test = Edit::from_string(data);
+                test.edit();
+                // todo!();
             },
             "list" => {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", username))));
