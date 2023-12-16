@@ -93,7 +93,7 @@ impl Edit {
                 println!("");
                 self.print_current_line();
             },
-            Err(error) => println!("{}", error),
+            Err(error) => eprintln!("{}", error),
         }
     }
 
@@ -103,7 +103,7 @@ impl Edit {
         print!("{: <1$}", "", self.line_length);
         print!("\r");
         if let Err(error) = stdout().flush() {
-            println!("{}", error);
+            eprintln!("{}", error);
         }
     }
 
@@ -112,7 +112,7 @@ impl Edit {
         self.line_length = line.len();
         print!("{}", line);
         if let Err(error) = stdout().flush() {
-            println!("{}", error);
+            eprintln!("{}", error);
         }
     }
 

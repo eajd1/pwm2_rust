@@ -13,6 +13,7 @@ fn main() {
 
     let username = get_username();
     create_dir(&format!("./files/{}", username));
+    create_dir(&format!("./files/{}/backups", username));
 
     println!("type 'help' for list of commands");
     loop {
@@ -100,6 +101,11 @@ fn create_dir(path: &str) {
 
 /// Writes data to "/files/username/file_name.txt"
 fn new_file(file_name: &str, username: &str, data: String) {
+    if fs::metadata(Path::new(&format!("./files/{}/{}.txt", username, file_name))).is_ok() {
+        if let Err(err) = fs::copy(Path::new(&format!("./files/{}/{}.txt", username, file_name)), Path::new(&format!("./files/{}/backups/{}.txt", username, file_name))) {
+            eprintln!("{}", err);
+        }
+    }
     if let Err(err) = fs::write(Path::new(&format!("./files/{}/{}.txt", username, file_name)), data) {
         eprintln!("{}", err);
     }
