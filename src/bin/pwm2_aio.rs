@@ -34,10 +34,25 @@ fn main() {
                 append_file(&file_name, &username, data);
             }
             "edit" => {
-                let data = open_file(&get_input("Enter file name: "), &username);
-                let mut test = Edit::from_string(data);
-                test.edit();
-                // todo!();
+                let file_name = get_input("Enter file name: ");
+                let data = open_file(&file_name, &username);
+                let mut edit = Edit::from_string(data);
+                edit.edit();
+                println!("New text is:");
+                println!("{}", edit.get());
+                loop {
+                    match get_input("Save this file? (y/n): ").as_str() {
+                        "y" => {
+                            new_file(&file_name, &username, encrypt_message(edit.get()));
+                            break;
+                        },
+                        "n" => break,
+                        _ => {
+                            println!("Incorrect input");
+                            continue;
+                        }
+                    }
+                }
             },
             "list" => {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", username))));
@@ -83,6 +98,7 @@ fn create_dir(path: &str) {
     }
 }
 
+/// Writes data to "/files/username/file_name.txt"
 fn new_file(file_name: &str, username: &str, data: String) {
     if let Err(err) = fs::write(Path::new(&format!("./files/{}/{}.txt", username, file_name)), data) {
         eprintln!("{}", err);
