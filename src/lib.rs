@@ -1,6 +1,5 @@
 use std::{
     io::{stdin, stdout, Write, Read},
-    fs,
     time::Instant,
     net::TcpStream
 };

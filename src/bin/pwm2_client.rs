@@ -115,9 +115,3 @@ fn open(stream: &TcpStream) -> String {
         return String::from("Data doesn't exist");
     }
 }
-
-/// Provides a command line [String] editor
-fn edit(data: String) -> String {
-    // TODO
-    String::new()
-}
