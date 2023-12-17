@@ -39,6 +39,7 @@ impl Edit {
         println!("Space to start and stop editing");
         println!("Up/Down arrows to change line");
         println!("Right arrow to add extra line");
+        println!("Left arrow to remove a line");
         println!("Esc to stop editing");
         println!("");
         stdout().flush().expect("Failed to flush stdout");
@@ -56,19 +57,21 @@ impl Edit {
                     },
                     Some(Keycode::Up) => {
                         self.up();
-                        self.clear_line();
-                        self.print_current_line();
                     },
                     Some(Keycode::Down) => {
                         self.down();
-                        self.clear_line();
-                        self.print_current_line();
                     },
                     Some(Keycode::Space) => {
                         self.edit_line();
                     },
                     Some(Keycode::Right) => {
                         self.data.push(String::new());
+                    },
+                    Some(Keycode::Left) => {
+                        if self.data.len() > 1 {
+                            self.data.remove(self.line);
+                            self.up();
+                        }
                     }
                     _ => (),
                 }
@@ -123,6 +126,8 @@ impl Edit {
         else {
             self.line -= 1;
         }
+        self.clear_line();
+        self.print_current_line();
     }
 
     fn down(&mut self) {
@@ -132,6 +137,8 @@ impl Edit {
         else {
             self.line += 1;
         }
+        self.clear_line();
+        self.print_current_line();
     }
 
     fn get_line(&self) -> String {

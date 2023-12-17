@@ -93,7 +93,7 @@ fn get_username() -> String {
 
 fn create_dir(path: &str) {
     if let Err(err) = fs::create_dir(path) {
-        if !err.to_string().contains("File exists") { // Dont worry if the file already exists
+        if !err.to_string().contains("exists") { // Dont worry if the file already exists
             eprintln!("{}", err);
         }
     }
