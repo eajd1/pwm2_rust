@@ -13,8 +13,8 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("192.168.0.31:51104")?;
 
     // Login
-    let mut username = SMsg::plain_from_str(&get_input("Enter Username: "));
-    username = username.encrypt(&get_password("Enter Password: "));
+    let mut username = SMsg::plain_str(&get_input("Enter Username: "));
+    username.encrypt(&get_password("Enter Password: "));
     write_stream(&stream, Message::Login(username.to_string_hex()));
     match read_stream(&stream, 16) {
         Message::Ok => println!("Logged in"),
@@ -103,8 +103,8 @@ fn open(stream: &TcpStream) -> String {
     let data_name = get_input("Enter Filename: ");
     if let Message::Length(len) = send_receive(&stream, Message::Get(data_name), 16) {
         if let Message::Data(data) = send_receive(&stream, Message::Ok, len) {
-            let data = SMsg::cypher_from_hex(&data);
-            let data = data.decrypt(&get_password("Enter Password: "));
+            let mut data = SMsg::cypher_from_hex(&data);
+            data.decrypt(&get_password("Enter Password: "));
             return data.to_string();
         }
         else {

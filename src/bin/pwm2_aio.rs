@@ -86,9 +86,9 @@ fn get_username() -> String {
     while username.is_empty()  {
         username = get_input("Enter Username: ");
     }
-    let username = SMsg::plain_from_str(&username);
-    let username = username.encrypt(&get_password("Enter Password: ")).to_string_hex();
-    return username;
+    let mut username = SMsg::plain_str(&username);
+    username.encrypt(&get_password("Enter Password: "));
+    return username.to_string_hex();
 }
 
 fn create_dir(path: &str) {
@@ -115,8 +115,8 @@ fn open_file(file_name: &str, username: &str) -> String {
     match fs::read_to_string(Path::new(&format!("./files/{}/{}.txt", username, file_name))) {
         Err(err) => return err.to_string(),
         Ok(data) => {
-            let data = SMsg::cypher_from_hex(&data);
-            let data = data.decrypt(&get_password("Enter Password: "));
+            let mut data = SMsg::cypher_from_hex(&data);
+            data.decrypt(&get_password("Enter Password: "));
             return data.to_string();
         },
     }

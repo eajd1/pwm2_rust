@@ -61,9 +61,9 @@ pub fn new_message() -> String {
     let password = get_password("Enter password: ");
 
     // Encryption
-    let mut msg = SMsg::plain_from_str(&file);
+    let mut msg = SMsg::plain_str(&file);
     let start = Instant::now();
-    msg = msg.encrypt(&password);
+    msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output
@@ -78,9 +78,24 @@ pub fn encrypt_message(message: String) -> String {
     let password = get_password("Enter password: ");
 
     // Encryption
-    let mut msg = SMsg::plain_from_str(&message);
+    let mut msg = SMsg::plain_str(&message);
     let start = Instant::now();
-    msg = msg.encrypt(&password);
+    msg.encrypt(&password);
+    println!("Encrypted in: {:?}", start.elapsed());
+
+    // Output
+    // save_file(msg.to_string_hex());
+    msg.to_string_hex()
+}
+
+/// Encrypts the given message by the password parameter
+/// 
+/// Returns the encryption as hex string
+pub fn encrypt_message_with_password(message: String, password: String) -> String {
+    // Encryption
+    let mut msg = SMsg::plain_str(&message);
+    let start = Instant::now();
+    msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output

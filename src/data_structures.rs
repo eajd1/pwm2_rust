@@ -121,18 +121,15 @@ pub mod client_data {
     
     
     use crate::get_hash;
-    pub enum SMsg {
-        CypherText(Vec<Block512>),
-        PlainText(Vec<Block512>),
+    #[derive(Clone)]
+    pub struct SMsg {
+        data: Vec<Block512>,
     }
     
     impl SMsg {
         
         pub fn len(&self) -> usize {
-            match self {
-                SMsg::CypherText(vec) => vec.len(),
-                SMsg::PlainText(vec) => vec.len(),
-            }
+            self.data.len()
         }
     
         fn from_bytes(bytes: &[u8]) -> Vec<Block512> {
@@ -157,29 +154,24 @@ pub mod client_data {
         }
     
         /// Converts a normal string into an SMsg::PlainText
-        pub fn plain_from_str(string: &str) -> SMsg {
-            SMsg::PlainText(SMsg::from_bytes(string.as_bytes()))
+        pub fn plain_str(string: &str) -> SMsg {
+            SMsg {
+                data: SMsg::from_bytes(string.as_bytes())
+            }
         }
     
         /// Converts a string of bytes into SMsg::CypherText
         pub fn cypher_from_hex(string: &str) -> SMsg {
-            SMsg::CypherText(SMsg::parse_bytes(string))
+            SMsg {
+                data: SMsg::parse_bytes(string)
+            }
         }
     
         /// Turns SMsg into a text String
         pub fn to_string(&self) -> String {
             let mut string = String::new();
-            match self {
-                SMsg::CypherText(data) => {
-                    for block in data {
-                        string += &block.to_string();
-                    }
-                },
-                SMsg::PlainText(data) => {
-                    for block in data {
-                        string += &block.to_string();
-                    }
-                },
+            for block in &self.data {
+                string += &block.to_string();
             }
             return string;
         }
@@ -187,59 +179,28 @@ pub mod client_data {
         /// Turns SMsg into a String of hexadecimal numbers
         pub fn to_string_hex(&self) -> String {
             let mut string = String::new();
-            match self {
-                SMsg::CypherText(data) => {
-                    for block in data {
-                        string += &(block.as_hex() + "\n");
-                    }
-                },
-                SMsg::PlainText(data) => {
-                    for block in data {
-                        string += &(block.as_hex() + "\n");
-                    }
-                },
+            for block in &self.data {
+                string += &(block.as_hex() + "\n");
             }
             return string.trim_end().to_string();
         }
     
-        pub fn encrypt(self, password: &str) -> SMsg {
-            match self {
-                SMsg::CypherText(_) => self,
-                SMsg::PlainText(mut data) => {
-                    let mut i = 0; // block increment value to ensure that different blocks with the same plain text encrypt differently
-                    for value in data.iter_mut() {
-                        let hash = get_hash(&(i.to_string() + password));
-                        *value = &hash ^ value;
-                        i += 1;
-                    }
-                    SMsg::CypherText(data)
-                },
-            }
+        pub fn encrypt(&mut self, password: &str) {
+            Self::cypher(&mut self.data, password)
         }
     
-        pub fn decrypt(self, password: &str) -> SMsg {
-            match self {
-                SMsg::PlainText(_) => self,
-                SMsg::CypherText(mut data) => {
-                    let mut i = 0; // block increment value
-                    for value in data.iter_mut() {
-                        let hash = get_hash(&(i.to_string() + password));
-                        *value = &hash ^ value;
-                        i += 1;
-                    }
-                    SMsg::CypherText(data)
-                },
+        pub fn decrypt(&mut self, password: &str) {
+            Self::cypher(&mut self.data, password)
+        }
+
+        fn cypher(data: &mut Vec<Block512>, password: &str) {
+            let mut i = 0; // block increment value to ensure that different blocks with the same plain text encrypt differently
+            for value in data.iter_mut() {
+                let hash = get_hash(&(i.to_string() + password));
+                *value = &hash ^ value;
+                i += 1;
             }
         }
-    }
-
-    impl Clone for SMsg {
-        fn clone(&self) -> Self {
-        match self {
-            Self::CypherText(block) => Self::CypherText(block.clone()),
-            Self::PlainText(block) => Self::PlainText(block.clone()),
-        }
-    }
     }
 }
 
