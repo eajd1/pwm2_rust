@@ -153,21 +153,29 @@ pub mod client_data {
             return vector;
         }
     
-        /// Converts a normal string into an SMsg::PlainText
+        /// Converts a normal string into an [SMsg]
         pub fn plain_str(string: &str) -> SMsg {
             SMsg {
                 data: SMsg::from_bytes(string.as_bytes())
             }
         }
     
-        /// Converts a string of bytes into SMsg::CypherText
+        /// Converts a string of bytes into [SMsg]
         pub fn cypher_from_hex(string: &str) -> SMsg {
             SMsg {
                 data: SMsg::parse_bytes(string)
             }
         }
+
+        pub fn cypher_from_hex_one_line(string: &str) -> SMsg {
+            let mut string = string.to_string();
+            for i in (128..string.len()).step_by(128) {
+                string.insert(i, '\n');
+            }
+            return Self::cypher_from_hex(&string);
+        }
     
-        /// Turns SMsg into a text String
+        /// Turns [SMsg] into a text [String]
         pub fn to_string(&self) -> String {
             let mut string = String::new();
             for block in &self.data {
@@ -176,13 +184,24 @@ pub mod client_data {
             return string;
         }
     
-        /// Turns SMsg into a String of hexadecimal numbers
+        /// Turns [SMsg] into a [String] of hexadecimal numbers
         pub fn to_string_hex(&self) -> String {
             let mut string = String::new();
             for block in &self.data {
                 string += &(block.as_hex() + "\n");
             }
             return string.trim_end().to_string();
+        }
+
+        /// Turns [SMsg] into a single line [String] of hexadecimal numbers
+        pub fn to_string_hex_one_line(&self) -> String {
+            self.data.iter()
+            .map(|block| -> String {
+                block.as_hex()
+            })
+            .reduce(|l, r| -> String {
+                l + &r
+            }).unwrap_or(String::from("Failed string hex conversion"))
         }
     
         pub fn encrypt(&mut self, password: &str) {
