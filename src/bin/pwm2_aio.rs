@@ -7,24 +7,32 @@ use pwm2_rust::{
     encrypt_message,
     get_hash,
 };
-use std::{fs, path::Path};
+use std::{fs, path::{Path, PathBuf}};
 
 struct UserInfo {
     username: String,
     password: String,
 }
 
+impl UserInfo {
+    fn get_username_hash(&self) -> String {
+        let mut msg = SMsg::plain_str(&self.username);
+        msg.encrypt(&self.password);
+        return msg.to_string_hex();
+    }
+}
+
 fn main() {
     create_dir("./files");
 
     let username = get_username();
-    create_dir(&format!("./files/{}", username));
-    create_dir(&format!("./files/{}/backups", username));
     let password = get_hash(&get_password("Enter Password: ")).as_hex();
     let user_info = UserInfo {
         username,
         password
     };
+    create_dir(&format!("./files/{}", user_info.get_username_hash()));
+    create_dir(&format!("./files/{}/backups", user_info.get_username_hash()));
 
     println!("type 'help' for list of commands");
     loop {
@@ -72,7 +80,7 @@ fn main() {
                 }
             },
             "list" => {
-                println!("{}", list_dir(Path::new(&format!("./files/{}", user_info.username)), &user_info));
+                println!("{}", list_dir(&get_path(&user_info, ""), &user_info));
             },
             "remove" => {
                 let file_name = get_file_name(&user_info.password,
@@ -97,6 +105,11 @@ fn main() {
             _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
     }
+}
+
+/// Returns the path to "./files/\<username\>\<path\>"
+fn get_path(user_info: &UserInfo, path: &str) -> PathBuf {
+    Path::new(&format!("./files/{}{}", user_info.get_username_hash(), path)).to_path_buf()
 }
 
 /// Takes the file_name and xors it with the password hash
@@ -138,22 +151,22 @@ fn create_dir(path: &str) {
     }
 }
 
-/// Writes data to "./files/<username>/<file_name>.txt"
+/// Writes data to "./files/\<username\>/<file_name>.txt"
 fn new_file(file_name: &str, user_info: &UserInfo, data: String) {
-    if fs::metadata(Path::new(&format!("./files/{}/{}.txt", user_info.username, file_name))).is_ok() {
-        if let Err(err) = fs::copy(Path::new(&format!("./files/{}/{}.txt", user_info.username, file_name)),
-            Path::new(&format!("./files/{}/backups/{}.txt", user_info.username, file_name))) {
+    if fs::metadata(get_path(&user_info, &format!("/{}.txt", file_name))).is_ok() {
+        if let Err(err) = fs::copy(get_path(&user_info, &format!("/{}.txt", file_name)),
+        get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
             eprintln!("{}", err);
         }
     }
-    if let Err(err) = fs::write(Path::new(&format!("./files/{}/{}.txt", user_info.username, file_name)), data) {
+    if let Err(err) = fs::write(get_path(&user_info, &format!("/{}.txt", file_name)), data) {
         eprintln!("{}", err);
     }
 }
 
-/// Reads and decrypts the contents of "./files/<username>/<file_name>.txt"
+/// Reads and decrypts the contents of "./files/\<username\>/<file_name>.txt"
 fn open_file(file_name: &str, user_info: &UserInfo) -> String {
-    match fs::read_to_string(Path::new(&format!("./files/{}/{}.txt", user_info.username, file_name))) {
+    match fs::read_to_string(get_path(&user_info, &format!("/{}.txt", file_name))) {
         Err(err) => return err.to_string(),
         Ok(data) => {
             let mut data = SMsg::cypher_from_hex(&data);
@@ -193,9 +206,9 @@ fn list_dir(path: &Path, user_info: &UserInfo) -> String {
 }
 
 fn remove_file(file_name: &str, user_info: &UserInfo) {
-    let path = &format!("./files/{}/{}.txt", user_info.username, file_name);
-    if let Ok(_) = fs::metadata(Path::new(path)) {
-        if let Err(err) = fs::remove_file(Path::new(path)) {
+    let path = get_path(&user_info, &format!("/{}.txt", file_name));
+    if let Ok(_) = fs::metadata(&path) {
+        if let Err(err) = fs::remove_file(&path) {
             eprintln!("Error removing file: {}", err);
         }
         else {
