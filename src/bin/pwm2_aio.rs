@@ -82,6 +82,9 @@ fn main() {
             "list" => {
                 println!("{}", list_dir(&get_path(&user_info, ""), &user_info));
             },
+            "list -b" => {
+                println!("{}", list_dir(&get_path(&user_info, "/backups"), &user_info));
+            },
             "remove" => {
                 let file_name = get_file_name(&user_info.password,
                     &get_input("Enter file name: "));
@@ -90,14 +93,15 @@ fn main() {
             "help" => {
                 println!();
                 println!("Available Commands:");
-                println!("new    - Creates a new file");
-                println!("open   - Opens an existing file");
-                println!("append - Append given input to an existing file");
-                println!("edit   - Edits an existing file");
-                println!("list   - Lists files available to you");
-                println!("remove - Deletes an existing file");
-                println!("help   - This is it");
-                println!("exit   - Exits the program");
+                println!("new     - Creates a new file");
+                println!("open    - Opens an existing file");
+                println!("append  - Append given input to an existing file");
+                println!("edit    - Edits an existing file");
+                println!("list    - Lists files available to you");
+                println!("list -b - Lists files in backups");
+                println!("remove  - Deletes an existing file");
+                println!("help    - This is it");
+                println!("exit    - Exits the program");
                 println!();
             }
             "exit" => break,
@@ -154,6 +158,7 @@ fn create_dir(path: &str) {
 /// Writes data to "./files/\<username\>/<file_name>.txt"
 fn new_file(file_name: &str, user_info: &UserInfo, data: String) {
     if fs::metadata(get_path(&user_info, &format!("/{}.txt", file_name))).is_ok() {
+        // This copies the current file to backups if it exists
         if let Err(err) = fs::copy(get_path(&user_info, &format!("/{}.txt", file_name)),
         get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
             eprintln!("{}", err);
