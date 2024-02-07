@@ -36,76 +36,77 @@ fn main() {
 
     println!("type 'help' for list of commands");
     loop {
-        let input = get_input(":> ");
-        match input.to_lowercase().as_str() {
-            "new" => {
-                let file_name = get_file_name(&user_info.password,
-                    &get_input("Enter file name: "));
+        let input = get_input(":> ").to_lowercase();
+        let args: Vec<&str> = input.as_str().split(' ').collect();
+        match args[..] {
+            ["new", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
                 new_file(&file_name, &user_info, new_message());
             },
-            "open" => {
-                let file_name = get_file_name(&user_info.password,
-                    &get_input("Enter file name: "));
+            ["open", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
                 let data = open_file(&file_name, &user_info);
                 println!("{}", data);
             },
-            "append" => {
-                let file_name = get_file_name(&user_info.password,
-                    &get_input("Enter file name: "));
+            ["append", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
                 let data = open_file(&file_name, &user_info);
                 println!("\nCurrent file contents:");
                 println!("{}\n", data);
                 append_file(&file_name, &user_info, data);
             }
-            "edit" => {
-                let file_name = get_file_name(&user_info.password,
-                    &get_input("Enter file name: "));
-                let data = open_file(&file_name, &user_info);
-                let mut edit = Edit::from_string(data);
-                edit.edit();
-                println!("New text is:");
-                println!("{}", edit.get());
-                loop {
-                    match get_input("Save this file? (y/n): ").as_str() {
-                        "y" => {
-                            new_file(&file_name, &user_info, encrypt_message(edit.get()));
-                            break;
-                        },
-                        "n" => break,
-                        _ => {
-                            println!("Incorrect input");
-                            continue;
+            ["edit", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
+                let mut data = open_file(&file_name, &user_info);
+                'edit: loop {
+                    let mut edit = Edit::from_string(data.to_owned());
+                    edit.edit();
+                    data = edit.get();
+                    println!("New text is:");
+                    println!("{}", data);
+
+                    'accept: loop {
+                        match get_input("Save this file? (y/n/retry): ").as_str() {
+                            "y" => {
+                                new_file(&file_name, &user_info, encrypt_message(edit.get()));
+                                break 'edit;
+                            },
+                            "n" => break 'edit,
+                            "retry" => continue 'edit,
+                            _ => {
+                                println!("Incorrect input");
+                                continue 'accept;
+                            }
                         }
                     }
                 }
             },
-            "list" => {
+            ["list"] => {
                 println!("{}", list_dir(&get_path(&user_info, ""), &user_info));
             },
-            "list -b" => {
+            ["list -b"] => {
                 println!("{}", list_dir(&get_path(&user_info, "/backups"), &user_info));
             },
-            "remove" => {
-                let file_name = get_file_name(&user_info.password,
-                    &get_input("Enter file name: "));
+            ["remove", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
                 remove_file(&file_name, &user_info);
             },
-            "help" => {
+            ["help"] => {
                 println!();
                 println!("Available Commands:");
-                println!("new     - Creates a new file");
-                println!("open    - Opens an existing file");
-                println!("append  - Append given input to an existing file");
-                println!("edit    - Edits an existing file");
-                println!("list    - Lists files available to you");
-                println!("list -b - Lists files in backups");
-                println!("remove  - Deletes an existing file");
-                println!("help    - This is it");
-                println!("exit    - Exits the program");
+                println!("new <file_name>    - Creates a new file");
+                println!("open <file_name>   - Opens an existing file");
+                println!("append <file_name> - Append given input to an existing file");
+                println!("edit <file_name>   - Edits an existing file");
+                println!("list               - Lists files available to you");
+                println!("list -b            - Lists files in backups");
+                println!("remove <file_name> - Deletes an existing file");
+                println!("help               - This is it");
+                println!("exit               - Exits the program");
                 println!();
             }
-            "exit" => break,
-            "" => continue,
+            ["exit"] => break,
+            [""] | [] => continue,
             _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
     }
