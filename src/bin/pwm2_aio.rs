@@ -66,13 +66,17 @@ fn main() {
                     println!("{}", data);
 
                     'accept: loop {
-                        match get_input("Save this file? (y/n/retry): ").as_str() {
+                        match get_input("Save this file? (y/n/retry/reset): ").as_str() {
                             "y" => {
                                 new_file(&file_name, &user_info, encrypt_message(edit.get()));
                                 break 'edit;
                             },
                             "n" => break 'edit,
                             "retry" => continue 'edit,
+                            "reset" => {
+                                data = open_file(&file_name, &user_info);
+                                continue 'edit;
+                            },
                             _ => {
                                 println!("Incorrect input");
                                 continue 'accept;
