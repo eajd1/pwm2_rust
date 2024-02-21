@@ -28,7 +28,7 @@ fn main() {
 
     println!("type 'help' for list of commands");
     loop {
-        let input = get_input(":> ").to_lowercase();
+        let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
             ["new", arg] => {
@@ -99,10 +99,12 @@ fn main() {
                 println!("remove <file_name> - Deletes an existing file");
                 println!("help               - This is it");
                 println!("logout             - lets you change user");
+                println!("whoami             - displays the current user");
                 println!("exit               - Exits the program");
                 println!();
             },
             ["logout"] => user_info = login(),
+            ["whoami"] => println!("{}", user_info.get_username_hash()),
             ["exit"] => break,
             [""] | [] => continue,
             _ => println!("Incorrect input. Type 'help' for list of commands"),
@@ -233,5 +235,6 @@ fn login() -> UserInfo {
     };
     create_dir(&format!("./files/{}", user_info.get_username_hash()));
     create_dir(&format!("./files/{}/backups", user_info.get_username_hash()));
+    println!("logged in as: {}", user_info.get_username_hash());
     return user_info;
 }
