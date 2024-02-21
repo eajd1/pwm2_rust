@@ -24,15 +24,7 @@ impl UserInfo {
 
 fn main() {
     create_dir("./files");
-
-    let username = get_username();
-    let password = get_hash(&get_password("Enter Password: ")).as_hex();
-    let user_info = UserInfo {
-        username,
-        password
-    };
-    create_dir(&format!("./files/{}", user_info.get_username_hash()));
-    create_dir(&format!("./files/{}/backups", user_info.get_username_hash()));
+    let mut user_info = login();
 
     println!("type 'help' for list of commands");
     loop {
@@ -106,9 +98,11 @@ fn main() {
                 println!("list -b            - Lists files in backups");
                 println!("remove <file_name> - Deletes an existing file");
                 println!("help               - This is it");
+                println!("logout             - lets you change user");
                 println!("exit               - Exits the program");
                 println!();
-            }
+            },
+            ["logout"] => user_info = login(),
             ["exit"] => break,
             [""] | [] => continue,
             _ => println!("Incorrect input. Type 'help' for list of commands"),
@@ -228,4 +222,16 @@ fn remove_file(file_name: &str, user_info: &UserInfo) {
     else {
         eprintln!("File '{}' doesnt exist", file_name);
     }
+}
+
+fn login() -> UserInfo {
+    let username = get_username();
+    let password = get_hash(&get_password("Enter Password: ")).as_hex();
+    let user_info = UserInfo {
+        username,
+        password
+    };
+    create_dir(&format!("./files/{}", user_info.get_username_hash()));
+    create_dir(&format!("./files/{}/backups", user_info.get_username_hash()));
+    return user_info;
 }
