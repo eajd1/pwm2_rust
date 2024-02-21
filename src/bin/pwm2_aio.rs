@@ -105,7 +105,10 @@ fn main() {
             },
             ["logout"] => user_info = login(),
             ["whoami"] => println!("{}", user_info.get_username_hash()),
-            ["exit"] => break,
+            ["exit"] => {
+                println!("{}c", 27 as char); // clear terminal
+                break
+            },
             [""] | [] => continue,
             _ => println!("Incorrect input. Type 'help' for list of commands"),
         }
@@ -227,6 +230,7 @@ fn remove_file(file_name: &str, user_info: &UserInfo) {
 }
 
 fn login() -> UserInfo {
+    println!("{}c", 27 as char); // clear terminal
     let username = get_username();
     let password = get_hash(&get_password("Enter Password: ")).as_hex();
     let user_info = UserInfo {
