@@ -83,10 +83,10 @@ fn main() {
                 }
             },
             ["list", "-b"] => {
-                println!("{}", list_dir(&get_path(&user_info, "/backups"), &user_info));
+                println!("{}", list_dir(Path::new(&format!("./files/{}/backups", user_info.get_username_hash())), &user_info));
             },
             ["list"] => {
-                println!("{}", list_dir(&get_path(&user_info, ""), &user_info));
+                println!("{}", list_dir(Path::new(&format!("./files/{}", user_info.get_username_hash())), &user_info));
             },
             ["restore", arg] => {
                 let file_name = get_file_name(&user_info.password, arg);
@@ -130,9 +130,9 @@ fn main() {
     }
 }
 
-/// Returns the path to "./files/\<username\>\<path\>"
+/// Returns the path to "./files/\<username\>/\<path\>.txt"
 fn get_path(user_info: &UserInfo, path: &str) -> PathBuf {
-    Path::new(&format!("./files/{}{}", user_info.get_username_hash(), path)).to_path_buf()
+    Path::new(&format!("./files/{}/{}.txt", user_info.get_username_hash(), path)).to_path_buf()
 }
 
 /// Takes the file_name and xors it with the password hash
@@ -168,21 +168,21 @@ fn create_dir(path: &str) {
 
 /// Writes data to "./files/\<username\>/<file_name>.txt"
 fn new_file(file_name: &str, user_info: &UserInfo, data: String) {
-    if fs::metadata(get_path(&user_info, &format!("/{}.txt", file_name))).is_ok() {
+    if fs::metadata(get_path(&user_info, file_name)).is_ok() {
         // This copies the current file to backups if it exists
-        if let Err(err) = fs::copy(get_path(&user_info, &format!("/{}.txt", file_name)),
-        get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+        if let Err(err) = fs::copy(get_path(&user_info, file_name),
+        get_path(&user_info, &format!("backups/{}", file_name))) {
             eprintln!("{}", err);
         }
     }
-    if let Err(err) = fs::write(get_path(&user_info, &format!("/{}.txt", file_name)), data) {
+    if let Err(err) = fs::write(get_path(&user_info, file_name), data) {
         eprintln!("{}", err);
     }
 }
 
 /// Reads and decrypts the contents of "./files/\<username\>/<file_name>.txt"
 fn open_file(file_name: &str, user_info: &UserInfo) -> String {
-    match fs::read_to_string(get_path(&user_info, &format!("/{}.txt", file_name))) {
+    match fs::read_to_string(get_path(&user_info, file_name)) {
         Err(err) => return err.to_string(),
         Ok(data) => {
             let mut data = SMsg::cypher_from_hex(&data);
@@ -225,8 +225,8 @@ fn list_dir(path: &Path, user_info: &UserInfo) -> String {
 
 /// Moves the file to backups
 fn remove_file(file_name: &str, user_info: &UserInfo) {
-    let path = get_path(&user_info, &format!("/{}.txt", file_name));
-    if let Err(err) = fs::copy(&path, get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+    let path = get_path(&user_info, file_name);
+    if let Err(err) = fs::copy(&path, get_path(&user_info, &format!("backups/{}", file_name))) {
         eprintln!("{}", err);
     }
     else {
@@ -265,15 +265,15 @@ fn login() -> UserInfo {
 
 /// Swaps the backup and active file with the same name
 fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Error> {
-    match fs::read(get_path(&user_info, &format!("/{}.txt", file_name))) {
+    match fs::read(get_path(&user_info, file_name)) {
         Ok(current) => {
-            if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)), get_path(&user_info, file_name)) {
                 return Err(err);
             }
-            return fs::write(get_path(&user_info, &format!("/backups/{}.txt", file_name)), current);
+            return fs::write(get_path(&user_info, &format!("backups/{}", file_name)), current);
         },
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)), get_path(&user_info, file_name)) {
                 return Err(err);
             }
             return Ok(());
@@ -284,13 +284,13 @@ fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Er
 
 /// Removes the file in both current and backup directories
 fn destroy_file(user_info: &UserInfo, file_name: &str) {
-    if let Err(err) = fs::remove_file(get_path(&user_info, &format!("/{}.txt", file_name))) {
+    if let Err(err) = fs::remove_file(get_path(&user_info, file_name)) {
         // Only display an error when the problem is NOT that the file doesn't exist
         if err.kind() != std::io::ErrorKind::NotFound {
             eprintln!("{}", err);
         }
     }
-    if let Err(err) = fs::remove_file(get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+    if let Err(err) = fs::remove_file(get_path(&user_info, &format!("backups/{}", file_name))) {
         // Only display an error when the problem is NOT that the file doesn't exist
         if err.kind() != std::io::ErrorKind::NotFound {
             eprintln!("{}", err);
