@@ -98,6 +98,10 @@ fn main() {
                 let file_name = get_file_name(&user_info.password, arg);
                 remove_file(&file_name, &user_info);
             },
+            ["destroy", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
+                destroy_file(&user_info, &file_name);
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
@@ -109,7 +113,8 @@ fn main() {
                 println!("list                - Lists files available to you");
                 println!("list -b             - Lists files in backups");
                 println!("restore <file_name> - Moves a file from backups to main directory");
-                println!("remove <file_name>  - Deletes an existing file");
+                println!("remove <file_name>  - Deletes an existing file (will be moved to backup)");
+                println!("destroy <file_name> - Deletes an existing file and its backup");
                 println!("help                - This is it");
                 println!("logout              - lets you change user");
                 println!("whoami              - displays the current user");
@@ -218,19 +223,19 @@ fn list_dir(path: &Path, user_info: &UserInfo) -> String {
     return files;
 }
 
-/// Removes the file with the file_name
+/// Moves the file to backups
 fn remove_file(file_name: &str, user_info: &UserInfo) {
     let path = get_path(&user_info, &format!("/{}.txt", file_name));
-    if let Ok(_) = fs::metadata(&path) {
+    if let Err(err) = fs::copy(&path, get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+        eprintln!("{}", err);
+    }
+    else {
         if let Err(err) = fs::remove_file(&path) {
             eprintln!("Error removing file: {}", err);
         }
         else {
             println!("'{}' removed", file_name);
         }
-    }
-    else {
-        eprintln!("File '{}' doesnt exist", file_name);
     }
 }
 
@@ -265,18 +270,30 @@ fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Er
             if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
                 return Err(err);
             }
-            else {
-                return fs::write(get_path(&user_info, &format!("/backups/{}.txt", file_name)), current);
-            }
+            return fs::write(get_path(&user_info, &format!("/backups/{}.txt", file_name)), current);
         },
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
             if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
                 return Err(err);
             }
-            else {
-                return Ok(());
-            }
+            return Ok(());
         },
         Err(err) => Err(err),
+    }
+}
+
+/// Removes the file in both current and backup directories
+fn destroy_file(user_info: &UserInfo, file_name: &str) {
+    if let Err(err) = fs::remove_file(get_path(&user_info, &format!("/{}.txt", file_name))) {
+        // Only display an error when the problem is NOT that the file doesn't exist
+        if err.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("{}", err);
+        }
+    }
+    if let Err(err) = fs::remove_file(get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+        // Only display an error when the problem is NOT that the file doesn't exist
+        if err.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("{}", err);
+        }
     }
 }
