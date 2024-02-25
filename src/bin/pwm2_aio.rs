@@ -152,15 +152,7 @@ fn inverse_file_name(password: &str, file_name: &str) -> String {
     return file_name.to_string();
 }
 
-fn get_username() -> String {
-    let mut username = get_input("Enter Username: ");
-    while username.is_empty()  {
-        println!("Invalid username");
-        username = get_input("Enter Username: ");
-    }
-    return username;
-}
-
+/// Creates a new directory printing all errors to stderr, except for when the directory already exists
 fn create_dir(path: &str) {
     if let Err(err) = fs::create_dir(path) {
         if !err.to_string().contains("exists") { // Dont worry if the file already exists
@@ -195,6 +187,7 @@ fn open_file(file_name: &str, user_info: &UserInfo) -> String {
     }
 }
 
+/// Adds a new line to a file
 fn append_file(file_name: &str, user_info: &UserInfo, data: String) {
     loop {
         let new_data = data.clone() + "\n" + &get_input("Enter data to append: ");
@@ -210,6 +203,7 @@ fn append_file(file_name: &str, user_info: &UserInfo, data: String) {
     }
 }
 
+/// Lists all the files in the provided [Path]
 fn list_dir(path: &Path, user_info: &UserInfo) -> String {
     let mut files = String::new();
     for file in fs::read_dir(path).unwrap() {
@@ -224,6 +218,7 @@ fn list_dir(path: &Path, user_info: &UserInfo) -> String {
     return files;
 }
 
+/// Removes the file with the file_name
 fn remove_file(file_name: &str, user_info: &UserInfo) {
     let path = get_path(&user_info, &format!("/{}.txt", file_name));
     if let Ok(_) = fs::metadata(&path) {
@@ -239,6 +234,17 @@ fn remove_file(file_name: &str, user_info: &UserInfo) {
     }
 }
 
+/// Gets a string from the user if no input is supplied it asks again
+fn get_username() -> String {
+    let mut username = get_input("Enter Username: ");
+    while username.is_empty()  {
+        println!("Invalid username");
+        username = get_input("Enter Username: ");
+    }
+    return username;
+}
+
+/// Creates the [UserInfo] struct and the corresponding folders for the user
 fn login() -> UserInfo {
     let username = get_username();
     let password = get_hash(&get_password("Enter Password: ")).as_hex();
@@ -252,6 +258,7 @@ fn login() -> UserInfo {
     return user_info;
 }
 
+/// Swaps the backup and active file with the same name
 fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Error> {
     match fs::read(get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
         Ok(backup) => {
