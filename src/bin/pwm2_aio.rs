@@ -260,15 +260,23 @@ fn login() -> UserInfo {
 
 /// Swaps the backup and active file with the same name
 fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Error> {
-    match fs::read(get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
-        Ok(backup) => {
-            if let Err(err) = fs::copy(get_path(&user_info, &format!("/{}.txt", file_name)), get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+    match fs::read(get_path(&user_info, &format!("/{}.txt", file_name))) {
+        Ok(current) => {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
                 return Err(err);
             }
             else {
-                return fs::write(get_path(&user_info, &format!("/{}.txt", file_name)), backup);
+                return fs::write(get_path(&user_info, &format!("/backups/{}.txt", file_name)), current);
             }
         },
-        Err(err) => Err(err)
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("/backups/{}.txt", file_name)), get_path(&user_info, &format!("/{}.txt", file_name))) {
+                return Err(err);
+            }
+            else {
+                return Ok(());
+            }
+        },
+        Err(err) => Err(err),
     }
 }
