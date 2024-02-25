@@ -35,6 +35,11 @@ fn main() {
                 let file_name = get_file_name(&user_info.password, arg);
                 new_file(&file_name, &user_info, new_message());
             },
+            ["open", "-b", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
+                let data = open_file(&format!("backups/{}", &file_name), &user_info);
+                println!("{}", data);
+            },
             ["open", arg] => {
                 let file_name = get_file_name(&user_info.password, arg);
                 let data = open_file(&file_name, &user_info);
@@ -46,7 +51,7 @@ fn main() {
                 println!("\nCurrent file contents:");
                 println!("{}\n", data);
                 append_file(&file_name, &user_info, data);
-            }
+            },
             ["edit", arg] => {
                 let file_name = get_file_name(&user_info.password, arg);
                 let mut data = open_file(&file_name, &user_info);
@@ -77,11 +82,17 @@ fn main() {
                     }
                 }
             },
+            ["list", "-b"] => {
+                println!("{}", list_dir(&get_path(&user_info, "/backups"), &user_info));
+            },
             ["list"] => {
                 println!("{}", list_dir(&get_path(&user_info, ""), &user_info));
             },
-            ["list -b"] => {
-                println!("{}", list_dir(&get_path(&user_info, "/backups"), &user_info));
+            ["restore", arg] => {
+                let file_name = get_file_name(&user_info.password, arg);
+                if let Err(err) = restore_file(&user_info, &file_name) {
+                    eprintln!("{}", err);
+                }
             },
             ["remove", arg] => {
                 let file_name = get_file_name(&user_info.password, arg);
@@ -90,17 +101,19 @@ fn main() {
             ["help"] => {
                 println!();
                 println!("Available Commands:");
-                println!("new <file_name>    - Creates a new file");
-                println!("open <file_name>   - Opens an existing file");
-                println!("append <file_name> - Append given input to an existing file");
-                println!("edit <file_name>   - Edits an existing file");
-                println!("list               - Lists files available to you");
-                println!("list -b            - Lists files in backups");
-                println!("remove <file_name> - Deletes an existing file");
-                println!("help               - This is it");
-                println!("logout             - lets you change user");
-                println!("whoami             - displays the current user");
-                println!("exit               - Exits the program");
+                println!("new <file_name>     - Creates a new file");
+                println!("open <file_name>    - Opens an existing file");
+                println!("open -b <file_name> - Opens a backup file");
+                println!("append <file_name>  - Append given input to an existing file");
+                println!("edit <file_name>    - Edits an existing file");
+                println!("list                - Lists files available to you");
+                println!("list -b             - Lists files in backups");
+                println!("restore <file_name> - Moves a file from backups to main directory");
+                println!("remove <file_name>  - Deletes an existing file");
+                println!("help                - This is it");
+                println!("logout              - lets you change user");
+                println!("whoami              - displays the current user");
+                println!("exit                - Exits the program");
                 println!();
             },
             ["logout"] => user_info = login(),
@@ -237,4 +250,18 @@ fn login() -> UserInfo {
     create_dir(&format!("./files/{}/backups", user_info.get_username_hash()));
     println!("logged in as: {}", user_info.get_username_hash());
     return user_info;
+}
+
+fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Error> {
+    match fs::read(get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+        Ok(backup) => {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("/{}.txt", file_name)), get_path(&user_info, &format!("/backups/{}.txt", file_name))) {
+                return Err(err);
+            }
+            else {
+                return fs::write(get_path(&user_info, &format!("/{}.txt", file_name)), backup);
+            }
+        },
+        Err(err) => Err(err)
+    }
 }
