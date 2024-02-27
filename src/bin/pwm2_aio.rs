@@ -7,7 +7,8 @@ use pwm2_rust::{
     encrypt_message,
     get_hash,
 };
-use std::{fs, path::{Path, PathBuf}};
+use std::{fs, ops::RangeInclusive, path::{Path, PathBuf}};
+use rand::Rng;
 
 struct UserInfo {
     username: String,
@@ -88,6 +89,19 @@ fn main() {
             ["list"] => {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", user_info.get_username_hash())), &user_info));
             },
+            ["generate", arg] => {
+                if let Ok(num) = arg.parse::<u32>() {
+                    let mut string = String::new();
+                    for _i in 0..num {
+                        let char = rand::thread_rng().gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
+                        string.push(char);
+                    }
+                    println!("\n{}\n", string);
+                }
+                else {
+                    println!("Please enter a positive number")
+                }
+            },
             ["restore", arg] => {
                 let file_name = get_file_name(&user_info.password, arg);
                 if let Err(err) = restore_file(&user_info, &file_name) {
@@ -112,6 +126,7 @@ fn main() {
                 println!("edit <file_name>    - Edits an existing file");
                 println!("list                - Lists files available to you");
                 println!("list -b             - Lists files in backups");
+                println!("generate <length>   - Generate a password of given length");
                 println!("restore <file_name> - Moves a file from backups to main directory");
                 println!("remove <file_name>  - Deletes an existing file (will be moved to backup)");
                 println!("destroy <file_name> - Deletes an existing file and its backup");
