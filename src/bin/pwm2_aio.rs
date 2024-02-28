@@ -89,14 +89,17 @@ fn main() {
             ["list"] => {
                 println!("{}", list_dir(Path::new(&format!("./files/{}", user_info.get_username_hash())), &user_info));
             },
+            ["generate", arg, label] => {
+                if let Ok(num) = arg.parse::<u32>() {
+                    make_password(&user_info, num, Some(String::from(label)));
+                }
+                else {
+                    println!("Please enter a positive number")
+                }
+            },
             ["generate", arg] => {
                 if let Ok(num) = arg.parse::<u32>() {
-                    let mut string = String::new();
-                    for _i in 0..num {
-                        let char = rand::thread_rng().gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
-                        string.push(char);
-                    }
-                    println!("\n{}\n", string);
+                    make_password(&user_info, num, None);
                 }
                 else {
                     println!("Please enter a positive number")
@@ -119,21 +122,21 @@ fn main() {
             ["help"] => {
                 println!();
                 println!("Available Commands:");
-                println!("new <file_name>     - Creates a new file");
-                println!("open <file_name>    - Opens an existing file");
-                println!("open -b <file_name> - Opens a backup file");
-                println!("append <file_name>  - Append given input to an existing file");
-                println!("edit <file_name>    - Edits an existing file");
-                println!("list                - Lists files available to you");
-                println!("list -b             - Lists files in backups");
-                println!("generate <length>   - Generate a password of given length");
-                println!("restore <file_name> - Moves a file from backups to main directory");
-                println!("remove <file_name>  - Deletes an existing file (will be moved to backup)");
-                println!("destroy <file_name> - Deletes an existing file and its backup");
-                println!("help                - This is it");
-                println!("logout              - lets you change user");
-                println!("whoami              - displays the current user");
-                println!("exit                - Exits the program");
+                println!("new <file_name>            - Creates a new file");
+                println!("open <file_name>           - Opens an existing file");
+                println!("open -b <file_name>        - Opens a backup file");
+                println!("append <file_name>         - Append given input to an existing file");
+                println!("edit <file_name>           - Edits an existing file");
+                println!("list                       - Lists files available to you");
+                println!("list -b                    - Lists files in backups");
+                println!("generate <length> |label|  - Generate a password of given length optional label");
+                println!("restore <file_name>        - Moves a file from backups to main directory");
+                println!("remove <file_name>         - Deletes an existing file (will be moved to backup)");
+                println!("destroy <file_name>        - Deletes an existing file and its backup");
+                println!("help                       - This is it");
+                println!("logout                     - lets you change user");
+                println!("whoami                     - displays the current user");
+                println!("exit                       - Exits the program");
                 println!();
             },
             ["logout"] => user_info = login(),
@@ -282,13 +285,15 @@ fn login() -> UserInfo {
 fn restore_file(user_info: &UserInfo, file_name: &str) -> Result<(), std::io::Error> {
     match fs::read(get_path(&user_info, file_name)) {
         Ok(current) => {
-            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)), get_path(&user_info, file_name)) {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)),
+                get_path(&user_info, file_name)) {
                 return Err(err);
             }
             return fs::write(get_path(&user_info, &format!("backups/{}", file_name)), current);
         },
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)), get_path(&user_info, file_name)) {
+            if let Err(err) = fs::copy(get_path(&user_info, &format!("backups/{}", file_name)),
+                get_path(&user_info, file_name)) {
                 return Err(err);
             }
             return Ok(());
@@ -310,5 +315,50 @@ fn destroy_file(user_info: &UserInfo, file_name: &str) {
         if err.kind() != std::io::ErrorKind::NotFound {
             eprintln!("{}", err);
         }
+    }
+}
+
+/// Generates 'length' number of random characters between ASCII values of 33 and 126 (inclusive)
+fn generate_random_string(length: u32) -> String {
+    let mut string = String::new();
+    for _i in 0..length {
+        let char = rand::thread_rng().gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
+        string.push(char);
+    }
+    return string;
+}
+
+fn make_password(user_info: &UserInfo, length: u32, label: Option<String>) {
+    let mut string = generate_random_string(length);
+    if let Some(label) = label {
+        string = label + " " + &string;
+        println!("\n{}\n", string);
+        match get_input("Save this password? (y/n): ").to_lowercase().as_str() {
+            "y" => {
+                let file_name = get_file_name(&user_info.password, &get_input("Enter file name: "));
+                let path = get_path(&user_info, &file_name);
+    
+                if fs::metadata(path).is_ok() {
+                    // If file exists append data
+                    let data = open_file(&file_name, &user_info);
+                    let data = data + "\n" + &string;
+                    println!("New Data:\n{}", data);
+                    match get_input("Save? (y/n): ").to_lowercase().as_str() {
+                        "y" => {
+                            new_file(&file_name, &user_info, encrypt_message(data));
+                        }
+                        _ => return,
+                    }
+                }
+                else {
+                    // Create a new file
+                    new_file(&file_name, &user_info, encrypt_message(string));
+                }
+            },
+            _ => return,
+        }
+    }
+    else {
+        println!("\n{}\n", string);
     }
 }
