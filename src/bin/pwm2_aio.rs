@@ -333,9 +333,10 @@ fn make_password(user_info: &UserInfo, length: u32, label: Option<String>) {
     if let Some(label) = label {
         string = label + " " + &string;
         println!("\n{}\n", string);
-        match get_input("Save this password? (y/n): ").to_lowercase().as_str() {
-            "y" => {
-                let file_name = get_file_name(&user_info.password, &get_input("Enter file name: "));
+        match get_input("Save to file: ").to_lowercase().as_str() {
+            "" => return,
+            file_name => {
+                let file_name = get_file_name(&user_info.password, file_name);
                 let path = get_path(&user_info, &file_name);
     
                 if fs::metadata(path).is_ok() {
@@ -354,8 +355,7 @@ fn make_password(user_info: &UserInfo, length: u32, label: Option<String>) {
                     // Create a new file
                     new_file(&file_name, &user_info, encrypt_message(string));
                 }
-            },
-            _ => return,
+            }
         }
     }
     else {
