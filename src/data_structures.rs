@@ -112,8 +112,8 @@ pub mod client_data {
 
     impl Clone for Block512 {
         fn clone(&self) -> Self {
-        Self { bytes: self.bytes.clone() }
-    }
+            Self { bytes: self.bytes.clone() }
+        }
     }
     
     

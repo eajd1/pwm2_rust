@@ -24,6 +24,10 @@ impl UserInfo {
 }
 
 fn main() {
+    if fs::metadata("./files").is_err() {
+        println!("Creating files in {:?}! Close program if you don't want to.", std::env::current_dir().unwrap_or(PathBuf::from("Error getting directory")));
+        get_input("Press Enter/Return to accept ");
+    }
     create_dir("./files");
     let mut user_info = login();
 
@@ -178,7 +182,7 @@ fn inverse_file_name(password: &str, file_name: &str) -> String {
 /// Creates a new directory printing all errors to stderr, except for when the directory already exists
 fn create_dir(path: &str) {
     if let Err(err) = fs::create_dir(path) {
-        if !err.to_string().contains("exists") { // Dont worry if the file already exists
+        if err.kind() != std::io::ErrorKind::AlreadyExists { // Dont worry if the file already exists
             eprintln!("{}", err);
         }
     }
