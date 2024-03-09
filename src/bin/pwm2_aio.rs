@@ -337,7 +337,7 @@ fn make_password(user_info: &UserInfo, length: u32, label: Option<String>) {
     if let Some(label) = label {
         string = label + " " + &string;
         println!("\n{}\n", string);
-        match get_input("Save to file: ").to_lowercase().as_str() {
+        match get_input("File to save to: ").to_lowercase().as_str() {
             "" => return,
             file_name => {
                 let file_name = get_file_name(&user_info.password, file_name);
