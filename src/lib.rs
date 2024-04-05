@@ -29,9 +29,23 @@ pub fn get_password(message: &str) -> String {
         match read_password() {
             Ok(password) => return password,
             Err(_) => {
-                println!("Couldnt read password");
+                println!("Couldn't read password");
                 continue;
             },
+        }
+    }
+}
+
+/// Gets a password from the user twice to ensure they typed it correctly
+pub fn get_confirm_password() -> String {
+    loop {
+        let password = get_password("Enter password: ");
+        let confirm = get_password("Confirm password: ");
+        if password == confirm {
+            return password;
+        }
+        else {
+            println!("Passwords not equal! Try again");
         }
     }
 }
@@ -58,7 +72,7 @@ pub fn new_message() -> String {
     // };
     let file = input;
 
-    let password = get_password("Enter password: ");
+    let password = get_confirm_password();
 
     // Encryption
     let mut msg = SMsg::plain_str(&file);
@@ -75,7 +89,7 @@ pub fn new_message() -> String {
 /// 
 /// Returns the encryption as hex string
 pub fn encrypt_message(message: String) -> String {
-    let password = get_password("Enter password: ");
+    let password = get_confirm_password();
 
     // Encryption
     let mut msg = SMsg::plain_str(&message);
