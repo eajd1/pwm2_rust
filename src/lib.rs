@@ -10,6 +10,19 @@ use data_structures::{client_data::*, Message};
 
 use rpassword::read_password;
 
+struct UserInfo {
+    username: String,
+    password: String,
+}
+
+impl UserInfo {
+    fn get_username_hash(&self) -> String {
+        let mut msg = SMsg::plain_str(&self.username);
+        msg.encrypt(&self.password);
+        return msg.to_string_hex();
+    }
+}
+
 /// Shows message in the console and reads a line input
 pub fn get_input(message: &str) -> String {
     // User input
@@ -116,51 +129,218 @@ pub fn encrypt_message_with_password(message: String, password: String) -> Strin
     msg.to_string_hex()
 }
 
+/// Block512 is an array of 64 u8(bytes) representing 512 bits
+pub struct Block512 {
+    bytes: [u8; 64],
+}
+    
+impl Block512 {
+    
+    /// Creates a new [Block512] initialised to 0
+    pub fn new() -> Block512 {
+        Block512 { bytes: [0; 64] }
+    }
+    
+    /// Creates a new [Block512] from an array of bytes
+    /// 
+    /// For inputting plain text
+    pub fn from_bytes(bytes: &[u8]) -> Block512 {
+        Self::from_bytes_vec(&bytes.to_vec())
+    }
+    
+    /// Creates a new Block512 from a vector of bytes
+    fn from_bytes_vec(bytes: &Vec<u8>) -> Block512 {
+        let mut block = Block512::new();
+        let mut pad: u8 = 0;
+        for i in 0..64 {
+            match bytes.get(i) {
+                Some(b) => block.bytes[i] = b.clone(),
+                None => block.bytes[i] = {
+                    if pad == 0 {
+                        pad = 64 - i as u8;
+                    }
+                    pad
+                },
+            }
+        }
+        return block;
+    }
+    
+    /// Returns a [String] that the [Block512] represents
+    /// 
+    /// For getting plain text out of the [Block512]
+    fn to_string(&self) -> String {
+        if let Some(pad) = self.padding() {
+            String::from(String::from_utf8_lossy(&self.bytes[0..(64 - pad)]))
+        }
+        else {
+            String::from(String::from_utf8_lossy(&self.bytes))
+        }
+    }
+    
+    /// Returns None if there is no padding or Some(padding) if there is padding
+    fn padding(&self) -> Option<usize> {
+        let pad = self.bytes[63];
+        if pad > 64 {
+            return None;
+        }
+        for i in ((64 - pad as usize)..63).rev() {
+            if self.bytes[i] != pad {
+                return None;
+            }
+        }
+        Some(pad as usize)
+    }
 
-// For use with TcpStream
+    /// Returns the [Block512] as a hexadecimal [String]
+    pub fn as_hex(&self) -> String {
+        let mut str = String::with_capacity(self.bytes.len() * 2);
+        for byte in self.bytes {
+            str.push_str(&format!("{:02X?}", byte));
+        }
+        str
+    }
 
-/// Converts a buffer of [u8] into a [String] without any trailing nulls "\0"
-pub fn convert_buffer(buf: &[u8]) -> String {
-    let vec: Vec<u8> = buf.to_vec()
-        .into_iter()
-        .take_while(|x| x != &0u8)
-        .collect();
-
-    match String::from_utf8(vec.clone()) {
-        Ok(string) => string,
-        Err(_) => String::from_utf8_lossy(&vec).to_string(),
+    /// Creates a new [Block512] from a hexadecimal [String]
+    fn from_hex(hex: &str) -> Block512 {
+        let bytes: Vec<u8> = (0..hex.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&hex[i..=i+1], 16).unwrap())
+            .collect();
+        Self::from_bytes_vec(&bytes)
+    }
+    
+}
+    
+use std::{ops::BitXor, fmt::Display};
+   
+impl BitXor for &Block512 {
+    type Output = Block512;
+    
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        let mut out = Block512::new();
+        for i in 0..64 {
+            out.bytes[i] = self.bytes[i] ^ rhs.bytes[i];
+        }
+        return out;
+    }
+}
+    
+impl Display for Block512 {
+    // for debugging
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.bytes))
     }
 }
 
-/// Sends a message to the given [TcpStream] and receives the reply
-pub fn send_receive(stream: &TcpStream, message: Message, size: usize) -> Message {
-    // Write
-    write_stream(&stream, message);
-
-    // Read
-    read_stream(&stream, size)
+impl Clone for Block512 {
+    fn clone(&self) -> Self {
+        Self { bytes: self.bytes.clone() }
+    }
 }
 
-/// Calls [read] on the given [TcpStream] and returns [Message]
-/// 
-/// If the read was unsuccessful it will send an error and read the response from that
-pub fn read_stream(mut stream: &TcpStream, size: usize) -> Message {
-    let mut buf: Vec<u8> = vec![0; size + 16];
-    while let Err(_) = stream.read(&mut buf[..]) {
-        write_stream(&stream, Message::Error(String::from("Communication Error")));
-    }
-    Message::new(&convert_buffer(&buf))
+
+
+
+
+use crate::get_hash;
+#[derive(Clone)]
+pub struct SMsg {
+    data: Vec<Block512>,
 }
 
-/// Calls [write] on the given [TcpStream] and returns the sent [Message]
-/// 
-/// Will try to send the message a maximum of 32 times before giving up
-pub fn write_stream(mut stream: &TcpStream, message: Message) -> Message {
-    let mut timeout = 32; // will try to write only 32 times
-
-    while let Err(_) = stream.write(message.to_string().as_bytes()) {
-        if timeout <= 0 {break}
-        timeout -= 1;
+impl SMsg {
+    
+    pub fn len(&self) -> usize {
+        self.data.len()
     }
-    message
+
+    fn from_bytes(bytes: &[u8]) -> Vec<Block512> {
+        let mut vector = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            let end = if bytes.len() < i + 64 { i + (bytes.len() - i) } else { i + 64 };
+            vector.push(Block512::from_bytes(&bytes[i..end]));
+            i += 64;
+        }
+        return vector;
+    }
+
+    /// string should be hexadecimal numbers seperated by newlines
+    fn parse_bytes(string: &str) -> Vec<Block512> {
+        let lines: Vec<&str> = string.lines().collect();
+        let mut vector = Vec::new();
+        for line in lines {
+            vector.push(Block512::from_hex(line));
+        }
+        return vector;
+    }
+
+    /// Converts a normal string into an [SMsg]
+    pub fn plain_str(string: &str) -> SMsg {
+        SMsg {
+            data: SMsg::from_bytes(string.as_bytes())
+        }
+    }
+
+    /// Converts a string of bytes into [SMsg]
+    pub fn cypher_from_hex(string: &str) -> SMsg {
+        SMsg {
+            data: SMsg::parse_bytes(string)
+        }
+    }
+
+    pub fn cypher_from_hex_one_line(string: &str) -> SMsg {
+        let mut string = string.to_string();
+        for i in (128..string.len()).step_by(128) {
+            string.insert(i, '\n');
+        }
+        return Self::cypher_from_hex(&string);
+    }
+    
+    /// Turns [SMsg] into a text [String]
+    pub fn to_string(&self) -> String {
+        let mut string = String::new();
+        for block in &self.data {
+            string += &block.to_string();
+        }
+        return string;
+    }
+    
+    /// Turns [SMsg] into a [String] of hexadecimal numbers
+    pub fn to_string_hex(&self) -> String {
+        let mut string = String::new();
+        for block in &self.data {
+            string += &(block.as_hex() + "\n");
+        }
+        return string.trim_end().to_string();
+    }
+
+    /// Turns [SMsg] into a single line [String] of hexadecimal numbers
+    pub fn to_string_hex_one_line(&self) -> String {
+        self.data.iter()
+        .map(|block| -> String {
+            block.as_hex()
+        })
+        .reduce(|l, r| -> String {
+            l + &r
+        }).unwrap_or(String::from("Failed string hex conversion"))
+    }
+
+    pub fn encrypt(&mut self, password: &str) {
+        Self::cypher(&mut self.data, password)
+    }
+
+    pub fn decrypt(&mut self, password: &str) {
+        Self::cypher(&mut self.data, password)
+    }
+
+    fn cypher(data: &mut Vec<Block512>, password: &str) {
+        let mut i = 0; // block increment value to ensure that different blocks with the same plain text encrypt differently
+        for value in data.iter_mut() {
+            let hash = get_hash(&(i.to_string() + password));
+            *value = &hash ^ value;
+            i += 1;
+        }
+    }
 }
