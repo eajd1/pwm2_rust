@@ -14,7 +14,7 @@ impl UserInfo {
 
     pub fn new() -> UserInfo {
         let mut username = get_input("Enter Username: ");
-        while username.is_empty() || username.len() > 512  {
+        while username.is_empty() || username.len() > 64 {
             if username.is_empty() {
                 println!("Username cannot be empty!");
             } else {
