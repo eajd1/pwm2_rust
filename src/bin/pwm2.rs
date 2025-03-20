@@ -14,19 +14,22 @@
 // then an empty line will denote a backup message
 
 // checklist:
-// [] get user info
-// [] have a way to display all entry names
-// [] have a way to display an entry and clear the display after
-// [] add a new entry
-// [] add a new entry with a random password
-// [] edit an entry
-// [] entry backup
-// [] viewable backups
-// [] restore backup
-// [] view all entry names
-// [] remove an entry
+// [_] get user info
+// [_] have a way to display all entry names
+// [_] have a way to display an entry and clear the display after
+// [_] add a new entry
+// [_] add a new entry with a random password
+// [_] edit an entry
+// [_] entry backup
+// [_] viewable backups
+// [_] restore backup
+// [_] view all entry names
+// [_] remove an entry
+// [_] add a way to import data from old versions
 
+use pwm2_rust::UserInfo;
 
 fn main() {
-    println!("Hello World!");
+    let test = UserInfo::new();
+    println!("{}", test.to_string());
 }

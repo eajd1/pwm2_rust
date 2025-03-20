@@ -1,24 +1,38 @@
 use std::{
     io::{stdin, stdout, Write, Read},
     time::Instant,
-    net::TcpStream
 };
 use sha2::{Sha512, Digest};
-
-pub mod data_structures;
-use data_structures::{client_data::*, Message};
-
 use rpassword::read_password;
 
-struct UserInfo {
+pub struct UserInfo {
     username: String,
-    password: String,
+    password_hash: String,
 }
 
 impl UserInfo {
-    fn get_username_hash(&self) -> String {
+
+    pub fn new() -> UserInfo {
+        let mut username = get_input("Enter Username: ");
+        while username.is_empty() || username.len() > 512  {
+            if username.is_empty() {
+                println!("Username cannot be empty!");
+            } else {
+                println!("Username too long!");
+            }
+            username = get_input("Enter Username: ");
+        }
+        let password_hash = get_hash_string(&get_confirm_password());
+
+        return UserInfo {
+            username,
+            password_hash,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
         let mut msg = SMsg::plain_str(&self.username);
-        msg.encrypt(&self.password);
+        msg.encrypt(&self.password_hash);
         return msg.to_string_hex();
     }
 }
@@ -69,6 +83,15 @@ pub fn get_hash(password: &str) -> Block512 {
     hasher.update(password.as_bytes());
     let result = hasher.finalize();
     return Block512::from_bytes(&result[..]);
+}
+
+/// Returns the SHA512 hash of the given &str as String
+pub fn get_hash_string(password: &str) -> String {
+    // Hashing
+    let mut hasher = Sha512::new();
+    hasher.update(password.as_bytes());
+    let result = hasher.finalize();
+    return Block512::from_bytes(&result[..]).as_hex();
 }
 
 /// Reads text from a file or the input and encrypts it with a password
@@ -239,11 +262,6 @@ impl Clone for Block512 {
     }
 }
 
-
-
-
-
-use crate::get_hash;
 #[derive(Clone)]
 pub struct SMsg {
     data: Vec<Block512>,
