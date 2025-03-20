@@ -8,13 +8,8 @@
 // Whenever and entry is updated a backup of the old entry should be still in
 // the same file and accessible just incase
 
-// File layout for an entry:
-// <timestamp>\n<SMsg>(\n\n<timestamp>\n<SMsg>)?
-// Every entry will consist of a timestamp followed by the message
-// then an empty line will denote a backup message
-
 // checklist:
-// [_] get user info
+// [x] get user info
 // [_] have a way to display all entry names
 // [_] have a way to display an entry and clear the display after
 // [_] add a new entry

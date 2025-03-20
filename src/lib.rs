@@ -1,6 +1,7 @@
 use std::{
     io::{stdin, stdout, Write, Read},
     time::Instant,
+    path::Path,
 };
 use sha2::{Sha512, Digest};
 use rpassword::read_password;
@@ -360,5 +361,31 @@ impl SMsg {
             *value = &hash ^ value;
             i += 1;
         }
+    }
+}
+
+// String form for Entry:
+// <name>:<timestamp>\n\n
+// <message>\n\n\n
+pub struct Entry {
+    timestamp: Instant,
+    name: SMsg,
+    message: SMsg,
+}
+
+impl Entry {
+
+    pub fn new(name: SMsg, message: SMsg) -> Entry {
+        Entry {
+            timestamp: Instant::now(),
+            name,
+            message,
+        }
+    }
+
+    pub fn save(path: &Path) {
+    }
+
+    pub fn load(path: &Path) {
     }
 }
