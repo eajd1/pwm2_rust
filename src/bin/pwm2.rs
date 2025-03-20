@@ -22,9 +22,11 @@
 // [_] remove an entry
 // [_] add a way to import data from old versions
 
-use pwm2_rust::UserInfo;
+use pwm2_rust::{Entry, SMsg};
 
 fn main() {
-    let test = UserInfo::new();
-    println!("{}", test.to_string());
+    let name = SMsg::plain_str("test");
+    let message = SMsg::plain_str("message");
+    let test = Entry::new(name, message);
+    println!("{}", test);
 }

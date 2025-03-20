@@ -2,9 +2,12 @@ use std::{
     io::{stdin, stdout, Write, Read},
     time::Instant,
     path::Path,
+    ops::BitXor,
+    fmt::Display,
 };
 use sha2::{Sha512, Digest};
 use rpassword::read_password;
+use chrono::{Utc, DateTime};
 
 pub struct UserInfo {
     username: String,
@@ -30,11 +33,14 @@ impl UserInfo {
             password_hash,
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for UserInfo {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = SMsg::plain_str(&self.username);
         msg.encrypt(&self.password_hash);
-        return msg.to_string_hex();
+        write!(f, "{}", msg.to_string_hex())
     }
 }
 
@@ -235,8 +241,6 @@ impl Block512 {
     }
     
 }
-    
-use std::{ops::BitXor, fmt::Display};
    
 impl BitXor for &Block512 {
     type Output = Block512;
@@ -251,6 +255,7 @@ impl BitXor for &Block512 {
 }
     
 impl Display for Block512 {
+
     // for debugging
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.bytes))
@@ -258,6 +263,7 @@ impl Display for Block512 {
 }
 
 impl Clone for Block512 {
+
     fn clone(&self) -> Self {
         Self { bytes: self.bytes.clone() }
     }
@@ -302,7 +308,7 @@ impl SMsg {
         }
     }
 
-    /// Converts a string of bytes into [SMsg]
+    /// Converts a hex string into [SMsg]
     pub fn cypher_from_hex(string: &str) -> SMsg {
         SMsg {
             data: SMsg::parse_bytes(string)
@@ -368,8 +374,8 @@ impl SMsg {
 // <name>:<timestamp>\n\n
 // <message>\n\n\n
 pub struct Entry {
-    timestamp: Instant,
     name: SMsg,
+    timestamp: DateTime<Utc>,
     message: SMsg,
 }
 
@@ -377,8 +383,8 @@ impl Entry {
 
     pub fn new(name: SMsg, message: SMsg) -> Entry {
         Entry {
-            timestamp: Instant::now(),
             name,
+            timestamp: Utc::now(),
             message,
         }
     }
@@ -387,5 +393,15 @@ impl Entry {
     }
 
     pub fn load(path: &Path) {
+    }
+}
+
+impl Display for Entry {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}\n{:?}\n{}",
+                self.name.to_string_hex(),
+                self.timestamp,
+                self.message.to_string_hex()))
     }
 }
