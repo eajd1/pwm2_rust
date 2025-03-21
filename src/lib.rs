@@ -200,7 +200,7 @@ impl Block512 {
     /// Returns a [String] that the [Block512] represents
     /// 
     /// For getting plain text out of the [Block512]
-    fn to_string(&self) -> String {
+    fn to_utf8_string(&self) -> String {
         if let Some(pad) = self.padding() {
             String::from(String::from_utf8_lossy(&self.bytes[0..(64 - pad)]))
         }
@@ -330,10 +330,10 @@ impl SMsg {
     }
     
     /// Turns [SMsg] into a text [String]
-    pub fn to_string(&self) -> String {
+    pub fn to_utf8_string(&self) -> String {
         let mut string = String::new();
         for block in &self.data {
-            string += &block.to_string();
+            string += &block.to_utf8_string();
         }
         return string;
     }
@@ -366,6 +366,13 @@ impl SMsg {
         Self::cypher(&mut self.data, password)
     }
 
+    /// returns a copy of this [SMsg] decrypted
+    pub fn decrypted(&self, password: &str) -> SMsg {
+        let mut copy = self.clone();
+        Self::cypher(&mut copy.data, password);
+        return copy
+    }
+
     fn cypher(data: &mut Vec<Block512>, password: &str) {
         let mut i = 0; // block increment value to ensure that different blocks with the same plain text encrypt differently
         for value in data.iter_mut() {
@@ -377,18 +384,16 @@ impl SMsg {
 }
 
 // String form for Entry:
-// <name>\n<timestamp>\n\n<message>\n\n\n
+// <timestamp>\n\n<message>\n\n\n
 pub struct Entry {
-    name: SMsg,
     timestamp: DateTime<Utc>,
     message: SMsg,
 }
 
 impl Entry {
 
-    pub fn new(name: SMsg, message: SMsg) -> Entry {
+    pub fn new(message: SMsg) -> Entry {
         Entry {
-            name,
             timestamp: Utc::now(),
             message,
         }
@@ -396,17 +401,12 @@ impl Entry {
 
     /// Returns and Entry if given a string that is following
     /// the format of [to_string] function
-    pub fn from_string(string: String) -> Entry {
+    pub fn from_string(string: &str) -> Entry {
         let mut split = string.split("\n\n");
-        let start = split.next().unwrap();
+        let timestamp = split.next().unwrap();
         let message = split.next().unwrap();
 
-        let mut split = start.split('\n');
-        let name = split.next().unwrap();
-        let timestamp = split.next().unwrap();
-
         return Entry {
-            name: SMsg::from_hex_string(&name),
             timestamp: timestamp.parse().unwrap(),
             message: SMsg::from_hex_string(&message),
         }
@@ -416,9 +416,61 @@ impl Entry {
 impl Display for Entry {
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}\n{:?}\n\n{}",
-                self.name.to_string_hex(),
+        f.write_fmt(format_args!("{:?}\n\n{}",
                 self.timestamp,
                 self.message.to_string_hex()))
+    }
+}
+
+/// Represents a Single [Entry] and all its backups from a file
+pub struct EntryFile {
+    name: SMsg, // This should always be stored in encrypted form
+    data: Vec<Entry>,
+}
+
+impl EntryFile {
+
+    pub fn new(name: SMsg, entry: Entry) -> EntryFile {
+        EntryFile {
+            name,
+            data: vec![entry],
+        }
+    }
+
+    /// Decrypts the file names using the provided [UserInfo] and
+    /// returns it as a string
+    pub fn get_name_string(&self, user_info: &UserInfo) -> String {
+        self.name.decrypted(&user_info.to_string()).to_utf8_string()
+    }
+
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let path = path.join(self.name.to_string_hex());
+        let file = self.data.iter()
+            .map(|entry| -> String {
+            entry.to_string()
+        }).reduce(|a, b| -> String {
+            a + &b
+        }).unwrap();
+        fs::write(path, file)
+    }
+
+    pub fn load(path: &Path, name: SMsg) -> Option<EntryFile> {
+        let file = fs::read_to_string(path.join(name.to_string_hex()));
+        match file {
+            Ok(string) => {
+                let split = string.split("\n\n\n");
+                return Some(EntryFile {
+                    name,
+                    data: split.map(|entry| -> Entry {
+                        Entry::from_string(&entry)
+                    })
+                    .collect::<Vec<Entry>>(),
+                });
+            },
+            Err(_) => {
+                println!("Could not read file: {}", path.display());
+                None
+            },
+        }
     }
 }
