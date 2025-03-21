@@ -10,6 +10,7 @@ use sha2::{Sha512, Digest};
 use rpassword::read_password;
 use chrono::{Utc, DateTime};
 
+#[derive(Debug)]
 pub struct UserInfo {
     username: String,
     password_hash: String,
@@ -161,6 +162,7 @@ pub fn encrypt_message_with_password(message: String, password: String) -> Strin
 }
 
 /// Block512 is an array of 64 u8(bytes) representing 512 bits
+#[derive(Debug)]
 pub struct Block512 {
     bytes: [u8; 64],
 }
@@ -270,7 +272,7 @@ impl Clone for Block512 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SMsg {
     data: Vec<Block512>,
 }
@@ -385,6 +387,7 @@ impl SMsg {
 
 // String form for Entry:
 // <timestamp>\n\n<message>\n\n\n
+#[derive(Debug)]
 pub struct Entry {
     timestamp: DateTime<Utc>,
     message: SMsg,
@@ -423,6 +426,7 @@ impl Display for Entry {
 }
 
 /// Represents a Single [Entry] and all its backups from a file
+#[derive(Debug)]
 pub struct EntryFile {
     name: SMsg, // This should always be stored in encrypted form
     data: Vec<Entry>,

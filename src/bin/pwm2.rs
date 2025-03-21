@@ -22,14 +22,14 @@
 // [_] add a way to import data from old versions
 // [_] add a way to generate random but memerable passwords
 
-use pwm2_rust::{Entry, SMsg};
+use pwm2_rust::{Entry, SMsg, EntryFile};
 
 fn main() {
     let message = SMsg::from_plain_str("message");
     let test = Entry::new(message);
     println!("{}", test);
 
-    let string = format!("{}", test);
-    let from = Entry::from_string(&string);
-    println!("{}", from);
+    let name = SMsg::from_plain_str("test");
+    let entry_file = EntryFile::new(name, test);
+    println!("{:#?}", entry_file);
 }
