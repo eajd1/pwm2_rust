@@ -12,13 +12,12 @@
 // [x] get user info
 // [_] have a way to display all entry names
 // [_] have a way to display an entry and clear the display after
-// [_] add a new entry
+// [x] add a new entry
 // [_] add a new entry with a random password
 // [_] edit an entry
 // [_] entry backup
 // [_] viewable backups
 // [_] restore backup
-// [_] view all entry names
 // [_] remove an entry
 // [_] add a way to import data from old versions
 // [_] add a way to generate random but memerable passwords
