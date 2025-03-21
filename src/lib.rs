@@ -46,6 +46,16 @@ impl Display for UserInfo {
     }
 }
 
+/// Creates a new directory printing all errors to stderr,
+/// except when the directory already exists  
+pub fn create_dir(path: &str) {
+    if let Err(err) = fs::create_dir(path) {
+        if err.kind() != std::io::ErrorKind::AlreadyExists {
+            eprintln!("{}", err);
+        }
+    }
+}
+
 /// Shows message in the console and reads a line input
 pub fn get_input(message: &str) -> String {
     // User input

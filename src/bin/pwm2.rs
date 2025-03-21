@@ -22,14 +22,26 @@
 // [_] add a way to import data from old versions
 // [_] add a way to generate random but memerable passwords
 
-use pwm2_rust::{Entry, SMsg, EntryFile};
+use pwm2_rust::*;
+use std::fs;
 
 fn main() {
-    let message = SMsg::from_plain_str("message");
-    let test = Entry::new(message);
-    println!("{}", test);
-
-    let name = SMsg::from_plain_str("test");
-    let entry_file = EntryFile::new(name, test);
-    println!("{:#?}", entry_file);
+    let mut user_info = UserInfo::new();
+    if fs::metadata("./files").is_err() {
+        println!("Creating files in {:?}! Close program if you don't want to.",
+            std::env::current_dir().expect("Couldn't get current directory"));
+        get_input("Press enter to accept ");
+    }
+    create_dir("./files");
+    println!("type 'help' for list of commands");
+    loop {
+        let input = get_input("> ").to_lowercase();
+        let args: Vec<&str> = input.as_str().split(' ').collect();
+        match args[..] {
+            ["logout"] => user_info = UserInfo::new(),
+            ["exit"] => break,
+            [""] | [] => continue,
+            _ => println!("Invalid input. Type 'help' for list of commands"),
+        }
+    }
 }
