@@ -42,8 +42,18 @@ fn main() {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
-            ["logout"] => user_info = UserInfo::new(),
-            ["exit"] => break,
+            ["help", ..] => {
+                println!();
+                println!("Available Commands:");
+                println!("help          - This is it");
+                println!("logout        - Lets you change user");
+                println!("user          - Displays current user");
+                println!("exit          - Exits the program");
+                println!();
+            },
+            ["logout", ..] => user_info = UserInfo::new(),
+            ["user", ..] => println!("{}", user_info),
+            ["exit", ..] => break,
             [""] | [] => continue,
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }

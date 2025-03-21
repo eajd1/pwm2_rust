@@ -1,4 +1,7 @@
-use crate::*;
+use crate::{
+    *,
+    block::Block512,
+};
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -19,7 +22,7 @@ impl UserInfo {
             }
             username = get_input("Enter Username: ");
         }
-        let password_hash = get_hash_string(&get_confirm_password());
+        let password_hash = Block512::get_hash_string(&get_confirm_password());
 
         return UserInfo {
             username,
