@@ -30,4 +30,8 @@ fn main() {
     let message = SMsg::plain_str("message");
     let test = Entry::new(name, message);
     println!("{}", test);
+
+    let string = format!("{}", test);
+    let from = Entry::from_string(string);
+    println!("{}", from);
 }

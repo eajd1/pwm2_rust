@@ -1,9 +1,10 @@
 use std::{
-    io::{stdin, stdout, Write, Read},
+    io::{stdin, stdout, Read, Write},
     time::Instant,
     path::Path,
     ops::BitXor,
     fmt::Display,
+    fs,
 };
 use sha2::{Sha512, Digest};
 use rpassword::read_password;
@@ -371,7 +372,7 @@ impl SMsg {
 }
 
 // String form for Entry:
-// <name>:<timestamp>\n\n
+// <name>\n<timestamp>\n\n
 // <message>\n\n\n
 pub struct Entry {
     name: SMsg,
@@ -389,17 +390,27 @@ impl Entry {
         }
     }
 
-    pub fn save(path: &Path) {
-    }
+    pub fn from_string(string: String) -> Entry {
+        let mut split = string.split("\n\n");
+        let start = split.next().unwrap();
+        let message = split.next().unwrap();
 
-    pub fn load(path: &Path) {
+        let mut split = start.split('\n');
+        let name = split.next().unwrap();
+        let timestamp = split.next().unwrap();
+
+        return Entry {
+            name: SMsg::cypher_from_hex(&name),
+            timestamp: timestamp.parse().unwrap(),
+            message: SMsg::cypher_from_hex(&message),
+        }
     }
 }
 
 impl Display for Entry {
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}\n{:?}\n{}",
+        f.write_fmt(format_args!("{}\n{:?}\n\n{}",
                 self.name.to_string_hex(),
                 self.timestamp,
                 self.message.to_string_hex()))
