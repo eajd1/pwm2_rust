@@ -22,7 +22,10 @@
 // [_] add a way to import data from old versions
 // [_] add a way to generate random but memerable passwords
 
-use pwm2_rust::*;
+use pwm2_rust::{
+    *,
+    user_info::UserInfo,
+};
 use std::fs;
 
 fn main() {
@@ -33,6 +36,7 @@ fn main() {
         get_input("Press enter to accept ");
     }
     create_dir("./files");
+
     println!("type 'help' for list of commands");
     loop {
         let input = get_input("> ").to_lowercase();

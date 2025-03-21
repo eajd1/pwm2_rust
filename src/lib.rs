@@ -1,50 +1,16 @@
 use std::{
     io::{stdin, stdout, Read, Write},
     time::Instant,
-    path::Path,
     ops::BitXor,
     fmt::Display,
     fs,
 };
 use sha2::{Sha512, Digest};
 use rpassword::read_password;
-use chrono::{Utc, DateTime};
 
-#[derive(Debug)]
-pub struct UserInfo {
-    username: String,
-    password_hash: String,
-}
-
-impl UserInfo {
-
-    pub fn new() -> UserInfo {
-        let mut username = get_input("Enter Username: ");
-        while username.is_empty() || username.len() > 64 {
-            if username.is_empty() {
-                println!("Username cannot be empty!");
-            } else {
-                println!("Username too long!");
-            }
-            username = get_input("Enter Username: ");
-        }
-        let password_hash = get_hash_string(&get_confirm_password());
-
-        return UserInfo {
-            username,
-            password_hash,
-        }
-    }
-}
-
-impl Display for UserInfo {
-
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut msg = SMsg::from_plain_str(&self.username);
-        msg.encrypt(&self.password_hash);
-        write!(f, "{}", msg.to_string_hex())
-    }
-}
+pub mod user_info;
+pub mod entry;
+pub mod entry_file;
 
 /// Creates a new directory printing all errors to stderr,
 /// except when the directory already exists  
@@ -391,100 +357,6 @@ impl SMsg {
             let hash = get_hash(&(i.to_string() + password));
             *value = &hash ^ value;
             i += 1;
-        }
-    }
-}
-
-// String form for Entry:
-// <timestamp>\n\n<message>\n\n\n
-#[derive(Debug)]
-pub struct Entry {
-    timestamp: DateTime<Utc>,
-    message: SMsg,
-}
-
-impl Entry {
-
-    pub fn new(message: SMsg) -> Entry {
-        Entry {
-            timestamp: Utc::now(),
-            message,
-        }
-    }
-
-    /// Returns and Entry if given a string that is following
-    /// the format of [to_string] function
-    pub fn from_string(string: &str) -> Entry {
-        let mut split = string.split("\n\n");
-        let timestamp = split.next().unwrap();
-        let message = split.next().unwrap();
-
-        return Entry {
-            timestamp: timestamp.parse().unwrap(),
-            message: SMsg::from_hex_string(&message),
-        }
-    }
-}
-
-impl Display for Entry {
-
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:?}\n\n{}",
-                self.timestamp,
-                self.message.to_string_hex()))
-    }
-}
-
-/// Represents a Single [Entry] and all its backups from a file
-#[derive(Debug)]
-pub struct EntryFile {
-    name: SMsg, // This should always be stored in encrypted form
-    data: Vec<Entry>,
-}
-
-impl EntryFile {
-
-    pub fn new(name: SMsg, entry: Entry) -> EntryFile {
-        EntryFile {
-            name,
-            data: vec![entry],
-        }
-    }
-
-    /// Decrypts the file names using the provided [UserInfo] and
-    /// returns it as a string
-    pub fn get_name_string(&self, user_info: &UserInfo) -> String {
-        self.name.decrypted(&user_info.to_string()).to_utf8_string()
-    }
-
-    pub fn save(&self, path: &Path) -> std::io::Result<()> {
-        let path = path.join(self.name.to_string_hex());
-        let file = self.data.iter()
-            .map(|entry| -> String {
-            entry.to_string()
-        }).reduce(|a, b| -> String {
-            a + &b
-        }).unwrap();
-        fs::write(path, file)
-    }
-
-    pub fn load(path: &Path, name: SMsg) -> Option<EntryFile> {
-        let file = fs::read_to_string(path.join(name.to_string_hex()));
-        match file {
-            Ok(string) => {
-                let split = string.split("\n\n\n");
-                return Some(EntryFile {
-                    name,
-                    data: split.map(|entry| -> Entry {
-                        Entry::from_string(&entry)
-                    })
-                    .collect::<Vec<Entry>>(),
-                });
-            },
-            Err(_) => {
-                println!("Could not read file: {}", path.display());
-                None
-            },
         }
     }
 }
