@@ -303,25 +303,30 @@ impl SMsg {
     }
 
     /// Converts a normal string into an [SMsg]
-    pub fn plain_str(string: &str) -> SMsg {
+    pub fn from_plain_str(string: &str) -> SMsg {
         SMsg {
             data: SMsg::from_bytes(string.as_bytes())
         }
     }
 
     /// Converts a hex string into [SMsg]
-    pub fn cypher_from_hex(string: &str) -> SMsg {
+    ///
+    /// Where each block is seperated by a new line
+    pub fn from_hex_string(string: &str) -> SMsg {
         SMsg {
             data: SMsg::parse_bytes(string)
         }
     }
 
-    pub fn cypher_from_hex_one_line(string: &str) -> SMsg {
+    /// Converts a hex string into [SMsg]
+    ///
+    /// Where the string is just one line
+    pub fn from_hex_string_one_line(string: &str) -> SMsg {
         let mut string = string.to_string();
         for i in (128..string.len()).step_by(128) {
             string.insert(i, '\n');
         }
-        return Self::cypher_from_hex(&string);
+        return Self::from_hex_string(&string);
     }
     
     /// Turns [SMsg] into a text [String]
@@ -372,8 +377,7 @@ impl SMsg {
 }
 
 // String form for Entry:
-// <name>\n<timestamp>\n\n
-// <message>\n\n\n
+// <name>\n<timestamp>\n\n<message>\n\n\n
 pub struct Entry {
     name: SMsg,
     timestamp: DateTime<Utc>,
@@ -390,6 +394,8 @@ impl Entry {
         }
     }
 
+    /// Returns and Entry if given a string that is following
+    /// the format of [to_string] function
     pub fn from_string(string: String) -> Entry {
         let mut split = string.split("\n\n");
         let start = split.next().unwrap();
@@ -400,9 +406,9 @@ impl Entry {
         let timestamp = split.next().unwrap();
 
         return Entry {
-            name: SMsg::cypher_from_hex(&name),
+            name: SMsg::from_hex_string(&name),
             timestamp: timestamp.parse().unwrap(),
-            message: SMsg::cypher_from_hex(&message),
+            message: SMsg::from_hex_string(&message),
         }
     }
 }

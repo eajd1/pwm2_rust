@@ -26,8 +26,8 @@
 use pwm2_rust::{Entry, SMsg};
 
 fn main() {
-    let name = SMsg::plain_str("test");
-    let message = SMsg::plain_str("message");
+    let name = SMsg::from_plain_str("test");
+    let message = SMsg::from_plain_str("message");
     let test = Entry::new(name, message);
     println!("{}", test);
 
