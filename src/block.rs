@@ -1,3 +1,4 @@
+use crate::smsg::Bytes;
 use std::{
     fmt::Display,
     ops::BitXor,
@@ -15,13 +16,6 @@ impl Block512 {
     /// Creates a new [Block512] initialised to 0
     pub fn new() -> Block512 {
         Block512 { bytes: [0; 64] }
-    }
-    
-    /// Creates a new [Block512] from an array of bytes
-    /// 
-    /// For inputting plain text
-    pub fn from_bytes(bytes: &[u8]) -> Block512 {
-        Self::from_bytes_vec(&bytes.to_vec())
     }
     
     /// Creates a new Block512 from a vector of bytes
@@ -129,5 +123,20 @@ impl Clone for Block512 {
 
     fn clone(&self) -> Self {
         Self { bytes: self.bytes.clone() }
+    }
+}
+
+impl Bytes for Block512 {
+
+    /// returns the bytes that make up a [Block512]
+    fn to_bytes(&self) -> Vec<u8>{
+        self.bytes.to_vec()
+    }
+    
+    /// Creates a new [Block512] from an array of bytes
+    /// 
+    /// For inputting plain text
+    fn from_bytes(bytes: &[u8]) -> Self{
+        Self::from_bytes_vec(&bytes.to_vec())
     }
 }

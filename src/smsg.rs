@@ -2,7 +2,7 @@ use crate::{
     block::Block512,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SMsg {
     data: Vec<Block512>,
 }
@@ -112,5 +112,81 @@ impl SMsg {
             *value = &hash ^ value;
             i += 1;
         }
+    }
+}
+
+impl Clone for SMsg {
+    fn clone(&self) -> Self {
+        SMsg {
+            data: self.data.clone(),
+        }
+    }
+}
+
+pub trait Bytes {
+    fn to_bytes(&self) -> Vec<u8>;
+    fn from_bytes(bytes: &[u8]) -> Self;
+}
+
+impl Bytes for String {
+
+    fn to_bytes(&self) -> Vec<u8>{
+        return self.as_bytes().to_vec();
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        return String::from_utf8(bytes.to_vec()).expect("Error converting bytes to String");
+    }
+}
+
+impl<T> Bytes for Vec<T>
+where T: Sized + Bytes {
+
+    fn to_bytes(&self) -> Vec<u8>{
+        return self.into_iter()
+            .map(
+                |x| -> Vec<u8> {
+                    x.to_bytes().to_vec()
+            })
+            .reduce(
+                |mut l, r| {
+                    l.extend(r);
+                    return l;
+                }                
+            ).expect("Error converting bytes");
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let mut vec: Self = vec![];
+        let mut bytes = bytes;
+        while bytes.len() > 0 {
+            vec.push(T::from_bytes(bytes));
+            bytes = &bytes[std::mem::size_of::<T>()..];
+        }
+        return vec;
+    }
+}
+
+// Generic functions
+impl SMsg {
+
+    fn new<T: Bytes>(data: &T) -> SMsg {
+        SMsg {
+            data: SMsg::from_bytes(&data.to_bytes())
+        }
+    }
+
+    fn extract<T: Bytes>(&self) -> T {
+        return T::from_bytes(&self.data.clone().into_iter()
+            .map( // Convert Vec<Block512> to Vec<Vec<u8>>
+                |x| -> Vec<u8> {
+                    x.to_bytes().to_vec()
+            })
+            .reduce( // Collapse Vec<Vec<u8>> to Vec<u8>
+                |mut l, r| {
+                    l.extend(r);
+                    return l;
+                }                
+            ).expect("Error extracting bytes"));
     }
 }
