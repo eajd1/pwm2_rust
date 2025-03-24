@@ -13,6 +13,7 @@ pub mod smsg;
 pub mod user_info;
 pub mod entry;
 pub mod entry_file;
+pub mod bytes;
 
 /// Creates a new directory printing all errors to stderr,
 /// except when the directory already exists  

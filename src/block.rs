@@ -1,4 +1,4 @@
-use crate::smsg::Bytes;
+use crate::bytes::Bytes;
 use std::{
     fmt::Display,
     ops::BitXor,
@@ -128,7 +128,7 @@ impl Clone for Block512 {
 
 impl Bytes for Block512 {
 
-    /// returns the bytes that make up a [Block512]
+    /// Returns the bytes that make up a [Block512]
     fn to_bytes(&self) -> Vec<u8>{
         self.bytes.to_vec()
     }
