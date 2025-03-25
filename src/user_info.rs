@@ -29,6 +29,12 @@ impl UserInfo {
             password_hash,
         }
     }
+
+    pub fn hash(&self) -> String {
+        let mut msg = SMsg::new::<String>(&self.username);
+        msg.encrypt(&self.password_hash);
+        return msg.to_string_hex_one_line();
+    }
 }
 
 impl Display for UserInfo {
@@ -36,6 +42,6 @@ impl Display for UserInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
-        write!(f, "{}", msg.to_string_hex())
+        write!(f, "Name: {}\nHash: {}", &self.username, msg.to_string_hex())
     }
 }

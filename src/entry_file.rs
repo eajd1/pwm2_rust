@@ -27,7 +27,7 @@ impl EntryFile {
     /// Decrypts the file names using the provided [UserInfo] and
     /// returns it as a string
     pub fn get_name_string(&self, user_info: &UserInfo) -> String {
-        self.name.decrypted(&user_info.to_string()).to_utf8_string()
+        self.name.decrypted(&user_info.hash()).to_utf8_string()
     }
 
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
