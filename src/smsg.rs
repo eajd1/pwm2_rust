@@ -35,13 +35,6 @@ impl SMsg {
         return vector;
     }
 
-    /// Converts a normal string into an [SMsg]
-    pub fn from_plain_str(string: &str) -> SMsg {
-        SMsg {
-            data: SMsg::from_bytes(string.as_bytes())
-        }
-    }
-
     /// Converts a hex string into [SMsg]
     ///
     /// Where each block is seperated by a new line
@@ -127,13 +120,17 @@ impl Clone for SMsg {
 // Generic functions
 impl SMsg {
 
-    fn new<T: Bytes>(data: &T) -> SMsg {
+    /// Converts a <T> into a [SMsg].
+    /// Where T impls [Bytes]
+    pub fn new<T: Bytes>(data: &T) -> SMsg {
         SMsg {
             data: SMsg::from_bytes(&data.to_bytes())
         }
     }
 
-    fn extract<T: Bytes>(&self) -> T {
+    /// Converts a [SMsg] into a <T>.
+    /// Where T impls [Bytes]
+    pub fn extract<T: Bytes>(&self) -> T {
         return T::from_bytes(&self.data.clone().into_iter()
             .map( // Convert Vec<Block512> to Vec<Vec<u8>>
                 |x| -> Vec<u8> {

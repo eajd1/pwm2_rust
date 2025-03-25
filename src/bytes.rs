@@ -5,7 +5,7 @@ pub trait Bytes {
 
 impl Bytes for String {
 
-    fn to_bytes(&self) -> Vec<u8>{
+    fn to_bytes(&self) -> Vec<u8> {
         return self.as_bytes().to_vec();
     }
 
@@ -14,10 +14,34 @@ impl Bytes for String {
     }
 }
 
+impl Bytes for isize {
+
+    fn to_bytes(&self) -> Vec<u8> {
+        return isize::to_le_bytes(8).to_vec();
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let array: [u8; 8] = bytes[..8].try_into().unwrap();
+        return isize::from_le_bytes(array);
+    }
+}
+
+impl Bytes for usize {
+
+    fn to_bytes(&self) -> Vec<u8> {
+        return usize::to_le_bytes(8).to_vec();
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let array: [u8; 8] = bytes[..8].try_into().unwrap();
+        return usize::from_le_bytes(array);
+    }
+}
+
 impl<T> Bytes for Vec<T>
 where T: Sized + Bytes {
 
-    fn to_bytes(&self) -> Vec<u8>{
+    fn to_bytes(&self) -> Vec<u8> {
         return self.into_iter()
             .map(
                 |x| -> Vec<u8> {

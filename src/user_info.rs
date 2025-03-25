@@ -34,7 +34,7 @@ impl UserInfo {
 impl Display for UserInfo {
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut msg = SMsg::from_plain_str(&self.username);
+        let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
         write!(f, "{}", msg.to_string_hex())
     }

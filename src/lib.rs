@@ -2,8 +2,6 @@ use crate::smsg::SMsg;
 use std::{
     io::{stdin, stdout, Read, Write},
     time::Instant,
-    ops::BitXor,
-    fmt::Display,
     fs,
 };
 use rpassword::read_password;
@@ -80,7 +78,7 @@ pub fn new_message() -> String {
     let password = get_confirm_password();
 
     // Encryption
-    let mut msg = SMsg::from_plain_str(&file);
+    let mut msg = SMsg::new::<String>(&file);
     let start = Instant::now();
     msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
@@ -97,7 +95,7 @@ pub fn encrypt_message(message: String) -> String {
     let password = get_confirm_password();
 
     // Encryption
-    let mut msg = SMsg::from_plain_str(&message);
+    let mut msg = SMsg::new::<String>(&message);
     let start = Instant::now();
     msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
@@ -112,7 +110,7 @@ pub fn encrypt_message(message: String) -> String {
 /// Returns the encryption as hex string
 pub fn encrypt_message_with_password(message: String, password: String) -> String {
     // Encryption
-    let mut msg = SMsg::from_plain_str(&message);
+    let mut msg = SMsg::new::<String>(&message);
     let start = Instant::now();
     msg.encrypt(&password);
     println!("Encrypted in: {:?}", start.elapsed());
