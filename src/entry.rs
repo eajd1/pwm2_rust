@@ -1,4 +1,6 @@
-use crate::SMsg;
+use crate::{
+    smsg::SMsg,
+};
 use std::fmt::Display;
 use chrono::{Utc, DateTime};
 
@@ -12,6 +14,9 @@ pub struct Entry {
 
 impl Entry {
 
+    /// Creates a new [Entry]
+    ///
+    /// Assumes that 'message' is already encrypted, otherwise it may be saved in plain text.
     pub fn new(message: SMsg) -> Entry {
         Entry {
             timestamp: Utc::now(),

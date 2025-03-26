@@ -25,6 +25,9 @@
 use pwm2_rust::{
     *,
     user_info::UserInfo,
+    entry_file::EntryFile,
+    entry::Entry,
+    smsg::SMsg,
 };
 use std::fs;
 
@@ -36,6 +39,7 @@ fn main() {
         get_input("Press enter to accept ");
     }
     create_dir("./files");
+    let path = std::env::current_dir().unwrap().join("files");
 
     println!("type 'help' for list of commands");
     loop {
@@ -55,6 +59,13 @@ fn main() {
             ["user", ..] => println!("{}", user_info),
             ["exit", ..] => break,
             [""] | [] => continue,
+            ["test", name, ..] => {
+                let mut test = SMsg::new::<String>(&String::from("test"));
+                test.encrypt(&user_info.hash());
+                let test = Entry::new(test);
+                let test = EntryFile::new(&user_info, name, test);
+                let _ = test.save(&path);
+            },
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
     }
