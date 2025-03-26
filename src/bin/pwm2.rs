@@ -32,14 +32,15 @@ use pwm2_rust::{
 use std::fs;
 
 fn main() {
-    let mut user_info = UserInfo::new();
     if fs::metadata("./files").is_err() {
         println!("Creating files in {:?}! Close program if you don't want to.",
             std::env::current_dir().expect("Couldn't get current directory"));
         get_input("Press enter to accept ");
     }
     create_dir("./files");
-    let path = std::env::current_dir().unwrap().join("files");
+
+    let mut user_info = UserInfo::new();
+    let path = get_base_path().join(user_info.);
 
     println!("type 'help' for list of commands");
     loop {
@@ -59,8 +60,8 @@ fn main() {
             ["user", ..] => println!("{}", user_info),
             ["exit", ..] => break,
             [""] | [] => continue,
-            ["test", name, ..] => {
-                let mut test = SMsg::new::<String>(&String::from("test"));
+            ["test", name, string, ..] => {
+                let mut test = SMsg::new::<String>(&String::from(string));
                 test.encrypt(&user_info.hash());
                 let test = Entry::new(test);
                 let test = EntryFile::new(&user_info, name, test);
@@ -69,4 +70,8 @@ fn main() {
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
     }
+}
+
+fn get_base_path() -> Path {
+    return std::env::current_dir().unwrap().join("files");
 }
