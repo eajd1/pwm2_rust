@@ -17,32 +17,37 @@ pub struct EntryFile {
 
 impl EntryFile {
 
-    pub fn new(name: SMsg, entry: Entry) -> EntryFile {
+    pub fn new(user_info: &UserInfo, name: &str, entry: Entry) -> EntryFile {
         EntryFile {
-            name,
+            name: {
+                let mut name = SMsg::new::<String>(&String::from(name));
+                name.encrypt(&user_info.hash());
+                name
+            },
             data: vec![entry],
         }
     }
 
-    /// Decrypts the file names using the provided [UserInfo] and
-    /// returns it as a string
-    pub fn get_name_string(&self, user_info: &UserInfo) -> String {
-        self.name.decrypted(&user_info.hash()).to_utf8_string()
+    /// Returns a copy of the name field in the [EntryFile]
+    pub fn get_name(&self) -> &SMsg {
+        &self.name
     }
 
+    /// Saves this [EntryFile] to the given path + self.name
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
-        let path = path.join(self.name.to_string_hex());
+        let path = path.join(self.name.to_string_hex_one_line());
         let file = self.data.iter()
             .map(|entry| -> String {
             entry.to_string()
         }).reduce(|a, b| -> String {
-            a + &b
+            a + "\n\n\n" + &b
         }).unwrap();
         fs::write(path, file)
     }
 
+    /// Loads the file at the given path + self.name into this [EntryFile]
     pub fn load(path: &Path, name: SMsg) -> Option<EntryFile> {
-        let file = fs::read_to_string(path.join(name.to_string_hex()));
+        let file = fs::read_to_string(path.join(name.to_string_hex_one_line()));
         match file {
             Ok(string) => {
                 let split = string.split("\n\n\n");
@@ -55,7 +60,7 @@ impl EntryFile {
                 });
             },
             Err(_) => {
-                println!("Could not read file: {}", path.display());
+                eprintln!("Could not read file: {}", path.display());
                 None
             },
         }
