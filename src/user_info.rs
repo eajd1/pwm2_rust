@@ -29,7 +29,7 @@ impl UserInfo {
             password_hash,
         };
 
-        create_dir(&get_base_path().join(&user_info.hash()));
+        create_dir(&user_info.user_path());
 
         return user_info;
     }
@@ -38,6 +38,10 @@ impl UserInfo {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
         return msg.to_string_hex_one_line();
+    }
+
+    pub fn user_path(&self) -> PathBuf {
+        get_base_path().join(self.hash())
     }
 }
 

@@ -40,7 +40,6 @@ fn main() {
     create_dir(&get_base_path());
 
     let mut user_info = UserInfo::new();
-    let path = get_base_path().join(user_info.hash());
 
     println!("type 'help' for list of commands");
     loop {
@@ -65,7 +64,7 @@ fn main() {
                 test.encrypt(&get_confirm_password());
                 let test = Entry::new(test);
                 let test = EntryFile::new(&user_info, name, test);
-                let _ = test.save(&path);
+                let _ = test.save(&user_info.user_path());
             },
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
