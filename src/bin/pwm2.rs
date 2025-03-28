@@ -10,7 +10,7 @@
 
 // checklist:
 // [x] get user info
-// [_] have a way to display all entry names
+// [x] have a way to display all entry names
 // [_] have a way to display an entry and clear the display after
 // [x] add a new entry
 // [_] add a new entry with a random password
@@ -46,6 +46,7 @@ fn main() {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
+            ["list", ..] => list_files(&user_info),
             ["help", ..] => {
                 println!();
                 println!("Available Commands:");
@@ -69,4 +70,18 @@ fn main() {
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
     }
+}
+
+fn list_files(user_info: &UserInfo) {
+    let mut files = String::new();
+    for file in fs::read_dir(user_info.user_path()).expect("Unable to read user directory") {
+        if let Ok(file) = file {
+            if let Some(name) = file.file_name().to_str() {
+                let mut name = SMsg::from_hex_string_one_line(name);
+                name.decrypt(&user_info.hash());
+                files += &(name.to_utf8_string() + "\n");
+            }
+        }
+    }
+    println!("{}", files);
 }
