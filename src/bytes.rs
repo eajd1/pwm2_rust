@@ -10,7 +10,8 @@ impl Bytes for String {
     }
 
     fn from_bytes(bytes: &[u8]) -> Self {
-        return String::from_utf8(bytes.to_vec()).expect("Error converting bytes to String");
+        return String::from_utf8(bytes.to_vec())
+            .expect("Error converting bytes to String");
     }
 }
 

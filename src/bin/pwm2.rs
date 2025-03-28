@@ -91,7 +91,8 @@ fn open(user_info: &UserInfo, name: &str) {
 
 fn list_files(user_info: &UserInfo) {
     let mut files = String::new();
-    for file in fs::read_dir(user_info.user_path()).expect("Unable to read user directory") {
+    for file in fs::read_dir(user_info.user_path())
+        .expect("Unable to read user directory") {
         // If there is a file
         if let Ok(file) = file {
             // If the file has a name

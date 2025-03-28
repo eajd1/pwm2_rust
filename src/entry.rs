@@ -16,7 +16,8 @@ impl Entry {
 
     /// Creates a new [Entry]
     ///
-    /// Assumes that 'message' is already encrypted, otherwise it may be saved in plain text.
+    /// Assumes that 'message' is already encrypted,
+    /// otherwise it may be saved in plain text.
     pub fn new(message: SMsg) -> Entry {
         Entry {
             timestamp: Utc::now(),

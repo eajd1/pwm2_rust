@@ -18,7 +18,11 @@ impl SMsg {
         let mut vector = Vec::new();
         let mut i = 0;
         while i < bytes.len() {
-            let end = if bytes.len() < i + 64 { i + (bytes.len() - i) } else { i + 64 };
+            let end = if bytes.len() < i + 64 {
+                i + (bytes.len() - i)
+            } else {
+                i + 64
+            };
             vector.push(Block512::from_bytes(&bytes[i..end]));
             i += 64;
         }
@@ -100,7 +104,9 @@ impl SMsg {
     }
 
     fn cypher(data: &mut Vec<Block512>, password: &str) {
-        let mut i = 0; // block increment value to ensure that different blocks with the same plain text encrypt differently
+        // block increment value to ensure that different blocks with
+        // the same plain text encrypt differently
+        let mut i = 0;
         for value in data.iter_mut() {
             let hash = Block512::get_hash(&(i.to_string() + password));
             *value = &hash ^ value;
