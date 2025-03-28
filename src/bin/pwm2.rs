@@ -11,7 +11,7 @@
 // checklist:
 // [x] get user info
 // [x] have a way to display all entry names
-// [_] have a way to display an entry and clear the display after
+// [x] have a way to display an entry and clear the display after
 // [x] add a new entry
 // [_] add a new entry with a random password
 // [_] edit an entry
@@ -46,11 +46,13 @@ fn main() {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
+            ["new", name, ..] => new(&user_info, name),
             ["open", name, ..] => open(&user_info, name),
             ["list", ..] => list_files(&user_info),
             ["help", ..] => {
                 println!();
                 println!("Available Commands:");
+                println!("new <name>    - creates a new file with the given name");
                 println!("open <name>   - opens the specified file");
                 println!("list          - Lists available files");
                 println!("help          - This is it");
@@ -75,6 +77,19 @@ fn main() {
     }
 }
 
+fn new(user_info: &UserInfo, name: &str) {
+    let mut message = SMsg::new::<String>(&get_input("Enter message: "));
+    message.encrypt(&get_confirm_password());
+    let entry = Entry::new(message);
+    let entry_file = EntryFile::new(&user_info, name, entry);
+    if let Err(e) = entry_file.save(&user_info.user_path()) {
+        eprintln!("{}", e);
+    } else {
+        println!("File saved successfully");
+        clear();
+    }
+}
+
 fn open(user_info: &UserInfo, name: &str) {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
@@ -84,8 +99,7 @@ fn open(user_info: &UserInfo, name: &str) {
             message.decrypt(&get_password("Enter password: "));
             println!("\n{}\n", message.to_utf8_string());
             
-            get_input("Press any key to continue: ");
-            clearscreen::clear().expect("Failed to clear screen");
+            clear();
         } else {
             eprintln!("No Entry in EntryFile");
         }
@@ -110,4 +124,11 @@ fn list_files(user_info: &UserInfo) {
         }
     }
     println!("{}", files);
+    clear();
+}
+
+/// Waits for the user to press enter then clears the screen
+fn clear() {
+    get_input("Press enter to continue: ");
+    clearscreen::clear().expect("Failed to clear screen");
 }
