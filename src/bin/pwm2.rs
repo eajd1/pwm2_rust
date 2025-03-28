@@ -46,6 +46,7 @@ fn main() {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
+            ["open", name, ..] => open(&user_info, name),
             ["list", ..] => list_files(&user_info),
             ["help", ..] => {
                 println!();
@@ -69,6 +70,22 @@ fn main() {
             },
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
+    }
+}
+
+fn open(user_info: &UserInfo, name: &str) {
+    let mut name = SMsg::new::<String>(&String::from(name));
+    name.encrypt(&user_info.hash());
+    if let Some(entry_file) = EntryFile::load(&user_info.user_path(), name) {
+        if let Some(entry) = entry_file.latest() {
+            let mut message = entry.get_message();
+            message.decrypt(&get_password("Enter password: "));
+            println!("\n{}\n", message.to_utf8_string());
+        } else {
+            eprintln!("No Entry in EntryFile");
+        }
+    } else {
+        eprintln!("Could not open EntryFile");
     }
 }
 

@@ -65,4 +65,12 @@ impl EntryFile {
             },
         }
     }
+
+    pub fn latest(&self) -> Option<Entry> {
+        self.data.clone().into_iter().reduce(
+            |l, r|
+                if l.get_timestamp() < r.get_timestamp() { l }
+                else { r }
+        )
+    }
 }

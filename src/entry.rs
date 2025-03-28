@@ -6,7 +6,7 @@ use chrono::{Utc, DateTime};
 
 // String form for Entry:
 // <timestamp>\n\n<message>\n\n\n
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     timestamp: DateTime<Utc>,
     message: SMsg,
@@ -35,6 +35,14 @@ impl Entry {
             timestamp: timestamp.parse().unwrap(),
             message: SMsg::from_hex_string(&message),
         }
+    }
+
+    pub fn get_timestamp(&self) -> &DateTime<Utc> {
+        &self.timestamp
+    }
+
+    pub fn get_message(&self) -> SMsg {
+        self.message.clone()
     }
 }
 
