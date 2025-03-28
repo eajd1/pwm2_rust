@@ -24,10 +24,14 @@ impl UserInfo {
         }
         let password_hash = Block512::get_hash_string(&get_confirm_password());
 
-        return UserInfo {
+        let user_info = UserInfo {
             username,
             password_hash,
-        }
+        };
+
+        create_dir(&get_base_path().join(&user_info.hash()));
+
+        return user_info;
     }
 
     pub fn hash(&self) -> String {

@@ -2,6 +2,7 @@ use crate::smsg::SMsg;
 use std::{
     io::{stdin, stdout, Read, Write},
     time::Instant,
+    path::PathBuf,
     fs,
 };
 use rpassword::read_password;
@@ -15,12 +16,17 @@ pub mod bytes;
 
 /// Creates a new directory printing all errors to stderr,
 /// except when the directory already exists  
-pub fn create_dir(path: &str) {
+pub fn create_dir(path: &PathBuf) {
     if let Err(err) = fs::create_dir(path) {
         if err.kind() != std::io::ErrorKind::AlreadyExists {
             eprintln!("{}", err);
         }
     }
+}
+
+/// Returns the current_dir/files
+pub fn get_base_path() -> PathBuf {
+    return std::env::current_dir().unwrap().join("files");
 }
 
 /// Shows message in the console and reads a line input
