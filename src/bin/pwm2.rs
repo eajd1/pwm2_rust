@@ -51,6 +51,8 @@ fn main() {
             ["help", ..] => {
                 println!();
                 println!("Available Commands:");
+                println!("open <name>   - opens the specified file");
+                println!("list          - Lists available files");
                 println!("help          - This is it");
                 println!("logout        - Lets you change user");
                 println!("user          - Displays current user");
@@ -81,6 +83,9 @@ fn open(user_info: &UserInfo, name: &str) {
             let mut message = entry.get_message();
             message.decrypt(&get_password("Enter password: "));
             println!("\n{}\n", message.to_utf8_string());
+            
+            get_input("Press any key to continue: ");
+            clearscreen::clear().expect("Failed to clear screen");
         } else {
             eprintln!("No Entry in EntryFile");
         }
