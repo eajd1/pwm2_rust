@@ -28,6 +28,10 @@ impl EntryFile {
         }
     }
 
+    pub fn add(&mut self, entry: Entry) {
+        self.data.push(entry);
+    }
+
     /// Returns a copy of the name field in the [EntryFile]
     pub fn get_name(&self) -> &SMsg {
         &self.name
@@ -46,13 +50,13 @@ impl EntryFile {
     }
 
     /// Loads the file at the given path + self.name into this [EntryFile]
-    pub fn load(path: &Path, name: SMsg) -> Option<EntryFile> {
+    pub fn load(path: &Path, name: &SMsg) -> Option<EntryFile> {
         let file = fs::read_to_string(path.join(name.to_string_hex_one_line()));
         match file {
             Ok(string) => {
                 let split = string.split("\n\n\n");
                 return Some(EntryFile {
-                    name,
+                    name: name.clone(),
                     data: split.map(|entry| -> Entry {
                         Entry::from_string(&entry)
                     })

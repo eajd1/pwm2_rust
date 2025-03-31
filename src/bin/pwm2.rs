@@ -47,10 +47,27 @@ fn main() {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
-            ["new", name, ..] => new(&user_info, name),
-            ["open", name, ..] => open(&user_info, name),
-            ["list", ..] => list_files(&user_info),
-            ["help", ..] => {
+            ["new", name] => {
+                let entry = new_entry(&user_info, name);
+                let entry_file = EntryFile::new(&user_info, name, entry);
+                if let Err(e) = entry_file.save(&user_info.user_path()) {
+                    eprintln!("{}", e);
+                } else {
+                    println!("File saved successfully");
+                    clear();
+                }
+            },
+            ["new", name, length] => (), // TODO make new entry with a random password
+            ["open", name] => {
+                println!("{}", open_latest(&user_info, name));
+                clear();
+            },
+            ["open", name, backup] => (), // TODO open the specified backup in a file
+            ["update", name] => update(&user_info, name),
+            ["revert", name] => (), // TODO revert an entry to the previous one
+            ["revert", name, backup] => (), // TODO revert an entry specified backup
+            ["list"] => list_files(&user_info),
+            ["help"] => {
                 println!();
                 println!("Available Commands:");
                 println!("new <name>    - creates a new file with the given name");
@@ -62,11 +79,11 @@ fn main() {
                 println!("exit          - Exits the program");
                 println!();
             },
-            ["logout", ..] => user_info = UserInfo::new(),
-            ["user", ..] => println!("{}", user_info),
+            ["logout"] => user_info = UserInfo::new(),
+            ["user"] => println!("{}", user_info),
             ["exit", ..] => break,
             [""] | [] => continue,
-            ["test", name, string, ..] => {
+            ["test", name, string] => {
                 let mut test = SMsg::new::<String>(&String::from(string));
                 test.encrypt(&get_confirm_password());
                 let test = Entry::new(test);
@@ -78,35 +95,34 @@ fn main() {
     }
 }
 
-fn new(user_info: &UserInfo, name: &str) {
+fn new_entry(user_info: &UserInfo, name: &str) -> Entry {
     let mut message = SMsg::new::<String>(&get_input("Enter message: "));
     message.encrypt(&get_confirm_password());
-    let entry = Entry::new(message);
-    let entry_file = EntryFile::new(&user_info, name, entry);
-    if let Err(e) = entry_file.save(&user_info.user_path()) {
-        eprintln!("{}", e);
-    } else {
-        println!("File saved successfully");
-        clear();
-    }
+    return Entry::new(message);
 }
 
-fn open(user_info: &UserInfo, name: &str) {
+fn open_latest(user_info: &UserInfo, name: &str) -> String {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
-    if let Some(entry_file) = EntryFile::load(&user_info.user_path(), name) {
+    if let Some(entry_file) = EntryFile::load(&user_info.user_path(), &name) {
         if let Some(entry) = entry_file.latest() {
             let mut message = entry.get_message();
             message.decrypt(&get_password("Enter password: "));
-            println!("\n{}\n", message.to_utf8_string());
-            
-            clear();
+            // TODO check if the password is correct
+            return message.to_utf8_string();
         } else {
-            eprintln!("No Entry in EntryFile");
+            eprintln!("No Entry in EntryFile: {:?}", name);
+            return String::from("");
         }
     } else {
-        eprintln!("Could not open EntryFile");
+        eprintln!("Could not open EntryFile: {:?}", name);
+        return String::from("");
     }
+}
+
+fn update(user_info: &UserInfo, name: &str) {
+    // TODO update an entry (creating a more recent one)
+    let latest = open_latest(&user_info, &name);
 }
 
 fn list_files(user_info: &UserInfo) {
