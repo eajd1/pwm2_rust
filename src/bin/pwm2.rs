@@ -13,9 +13,9 @@
 // [x] have a way to display all entry names
 // [x] have a way to display an entry and clear the display after
 // [x] add a new entry file
-// [_] add a new entry
-// [_] edit an entry
-// [_] entry backup
+// [x] add a new entry
+// [x] edit an entry file
+// [x] entry backup
 // [_] viewable backups
 // [_] restore backup
 // [_] remove an entry
@@ -48,7 +48,7 @@ fn main() {
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
             ["new", name] => {
-                let entry = new_entry(&user_info, name);
+                let entry = new_entry();
                 let entry_file = EntryFile::new(&user_info, name, entry);
                 if let Err(e) = entry_file.save(&user_info.user_path()) {
                     eprintln!("{}", e);
@@ -57,15 +57,25 @@ fn main() {
                     clear();
                 }
             },
-            ["new", name, length] => (), // TODO make new entry with a random password
+            ["new", _name, _length] => (), // TODO make new entry with a random password
             ["open", name] => {
-                println!("{}", open_latest(&user_info, name));
-                clear();
+                if let Some(entry_file) = get_file(&user_info, name) {
+                    println!("{}", open_latest(&entry_file));
+                    clear();
+                } else {
+                    eprintln!("Couldn't open file");
+                }
             },
-            ["open", name, backup] => (), // TODO open the specified backup in a file
-            ["update", name] => update(&user_info, name),
-            ["revert", name] => (), // TODO revert an entry to the previous one
-            ["revert", name, backup] => (), // TODO revert an entry specified backup
+            ["open", _name, _backup] => (), // TODO open the specified backup in a file
+            ["update", name] => {
+                if let Some(mut entry_file) = get_file(&user_info, name) {
+                    update(&user_info, &mut entry_file)
+                } else {
+                    eprintln!("Couldn't open file");
+                }
+            },
+            ["revert", _name] => (), // TODO revert an entry to the previous one
+            ["revert", _name, _backup] => (), // TODO revert an entry specified backup
             ["list"] => list_files(&user_info),
             ["help"] => {
                 println!();
@@ -95,34 +105,41 @@ fn main() {
     }
 }
 
-fn new_entry(user_info: &UserInfo, name: &str) -> Entry {
+fn new_entry() -> Entry {
     let mut message = SMsg::new::<String>(&get_input("Enter message: "));
     message.encrypt(&get_confirm_password());
     return Entry::new(message);
 }
 
-fn open_latest(user_info: &UserInfo, name: &str) -> String {
+fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
-    if let Some(entry_file) = EntryFile::load(&user_info.user_path(), &name) {
-        if let Some(entry) = entry_file.latest() {
-            let mut message = entry.get_message();
-            message.decrypt(&get_password("Enter password: "));
-            // TODO check if the password is correct
-            return message.to_utf8_string();
-        } else {
-            eprintln!("No Entry in EntryFile: {:?}", name);
-            return String::from("");
-        }
+    return EntryFile::load(&user_info.user_path(), &name);
+}
+
+fn open_latest(entry_file: &EntryFile) -> String {
+    if let Some(entry) = entry_file.latest() {
+        let mut message = entry.get_message();
+        message.decrypt(&get_password("Enter password: "));
+        // TODO check if the password is correct
+        return message.to_utf8_string();
     } else {
-        eprintln!("Could not open EntryFile: {:?}", name);
+        eprintln!("No Entry in EntryFile");
         return String::from("");
     }
 }
 
-fn update(user_info: &UserInfo, name: &str) {
-    // TODO update an entry (creating a more recent one)
-    let latest = open_latest(&user_info, &name);
+fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
+    let latest = open_latest(&entry_file);
+    println!("{}", &latest);
+    let entry = new_entry();
+    entry_file.add(entry);
+    if let Err(e) = entry_file.save(&user_info.user_path()) {
+        eprintln!("{}", e);
+    } else {
+        println!("File saved successfully");
+        clear();
+    }
 }
 
 fn list_files(user_info: &UserInfo) {
