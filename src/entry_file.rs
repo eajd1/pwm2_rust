@@ -71,10 +71,9 @@ impl EntryFile {
     }
 
     pub fn latest(&self) -> Option<Entry> {
-        self.data.clone().into_iter().reduce(
-            |l, r|
-                if l.get_timestamp() < r.get_timestamp() { l }
-                else { r }
-        )
+        match self.data.len() {
+            0 => None,
+            n => Some(self.data[n-1].clone()),
+        }
     }
 }
