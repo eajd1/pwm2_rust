@@ -57,7 +57,17 @@ fn main() {
                     clear();
                 }
             },
-            ["new", _name, _length] => (), // TODO make new entry with a random password
+            ["new", name, length] if !length.parse::<usize>().is_err() => {
+                let length = length.parse::<usize>().unwrap();
+                // TODO Create entry with random password of given length
+                //let entry_file = EntryFile::new(&user_info, name, entry);
+                //if let Err(e) = entry_file.save(&user_info.user_path()) {
+                    //eprintln!("{}", e);
+                //} else {
+                    //println!("File saved successfully");
+                    //clear();
+                //}
+            },
             ["open", name] => open(&user_info, name, 0),
             ["open", name, backup] if !backup.parse::<usize>().is_err() => {
                 let backup = backup.parse::<usize>().unwrap();
