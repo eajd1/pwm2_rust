@@ -1,6 +1,6 @@
 use crate::smsg::SMsg;
 use std::{
-    io::{stdin, stdout, Read, Write},
+    io::{stdin, stdout, Write},
     time::Instant,
     path::PathBuf,
     fs,
