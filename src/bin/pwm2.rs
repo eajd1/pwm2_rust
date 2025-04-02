@@ -30,7 +30,11 @@ use pwm2_rust::{
     entry::Entry,
     smsg::SMsg,
 };
-use std::fs;
+use std::{
+    fs,
+    ops::RangeInclusive,
+};
+use rand::Rng;
 
 fn main() {
     if fs::metadata(&get_base_path()).is_err() {
@@ -59,14 +63,14 @@ fn main() {
             },
             ["new", name, length] if !length.parse::<usize>().is_err() => {
                 let length = length.parse::<usize>().unwrap();
-                // TODO Create entry with random password of given length
-                //let entry_file = EntryFile::new(&user_info, name, entry);
-                //if let Err(e) = entry_file.save(&user_info.user_path()) {
-                    //eprintln!("{}", e);
-                //} else {
-                    //println!("File saved successfully");
-                    //clear();
-                //}
+                let entry = random_entry(length);
+                let entry_file = EntryFile::new(&user_info, name, entry);
+                if let Err(e) = entry_file.save(&user_info.user_path()) {
+                    eprintln!("{}", e);
+                } else {
+                    println!("File saved successfully");
+                    clear();
+                }
             },
             ["open", name] => open(&user_info, name, 0),
             ["open", name, backup] if !backup.parse::<usize>().is_err() => {
@@ -137,6 +141,22 @@ fn new_entry() -> Entry {
     return Entry::new(message);
 }
 
+fn random_entry(length: usize) -> Entry {
+    let mut message = SMsg::new::<String>(&random_string(length));
+    message.encrypt(&get_confirm_password());
+    return Entry::new(message);
+}
+
+/// Generates 'length' number of random characters between ASCII values 33 and 126 (incl)
+fn random_string(length: usize) -> String {
+    let mut string = String::new();
+    for _ in 0..length {
+        let char = rand::thread_rng().gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
+        string.push(char);
+    }
+    return string;
+}
+
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
@@ -145,7 +165,7 @@ fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
 
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
-        println!("{}", open_entry(&entry_file, index));
+        println!("\n{}", open_entry(&entry_file, index));
         clear();
     } else {
         eprintln!("Couldn't open file");
