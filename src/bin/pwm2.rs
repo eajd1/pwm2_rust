@@ -58,15 +58,11 @@ fn main() {
                 }
             },
             ["new", _name, _length] => (), // TODO make new entry with a random password
-            ["open", name] => {
-                if let Some(entry_file) = get_file(&user_info, name) {
-                    println!("{}", open_latest(&entry_file));
-                    clear();
-                } else {
-                    eprintln!("Couldn't open file");
-                }
+            ["open", name] => open(&user_info, name, 0),
+            ["open", name, backup] if !backup.parse::<usize>().is_err() => {
+                let backup = backup.parse::<usize>().unwrap();
+                open(&user_info, name, backup);
             },
-            ["open", _name, _backup] => (), // TODO open the specified backup in a file
             ["update", name] => {
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     update(&user_info, &mut entry_file)
@@ -74,8 +70,11 @@ fn main() {
                     eprintln!("Couldn't open file");
                 }
             },
-            ["revert", _name] => (), // TODO revert an entry to the previous one
-            ["revert", _name, _backup] => (), // TODO revert an entry specified backup
+            ["revert", name] => revert(&user_info, name, 0),
+            ["revert", name, backup] if !backup.parse::<usize>().is_err() => {
+                let backup = backup.parse::<usize>().unwrap();
+                revert(&user_info, name, backup);
+            },
             ["list"] => list_files(&user_info),
             ["help"] => {
                 println!();
@@ -134,20 +133,25 @@ fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     return EntryFile::load(&user_info.user_path(), &name);
 }
 
-fn open_latest(entry_file: &EntryFile) -> String {
-    if let Some(entry) = entry_file.latest() {
-        let mut message = entry.get_message();
-        message.decrypt(&get_password("Enter password: "));
-        // TODO check if the password is correct
-        return message.to_utf8_string();
+fn open(user_info: &UserInfo, name: &str, index: usize) {
+    if let Some(entry_file) = get_file(&user_info, name) {
+        println!("{}", open_entry(&entry_file, index));
+        clear();
     } else {
-        eprintln!("No Entry in EntryFile");
-        return String::from("");
+        eprintln!("Couldn't open file");
     }
 }
 
+fn open_entry(entry_file: &EntryFile, index: usize) -> String {
+    let entry = entry_file.get(index);
+    let mut message = entry.get_message();
+    message.decrypt(&get_password("Enter password: "));
+    // TODO check if the password is correct
+    return message.to_utf8_string();
+}
+
 fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
-    let latest = open_latest(&entry_file);
+    let latest = open_entry(&entry_file, 0);
     println!("{}", &latest);
     let entry = new_entry();
     entry_file.add(entry);
@@ -156,6 +160,28 @@ fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
     } else {
         println!("File saved successfully");
         clear();
+    }
+}
+
+fn revert(user_info: &UserInfo, name: &str, index: usize) {
+    if let Some(mut entry_file) = get_file(&user_info, name) {
+        println!("Latest Entry:\n{}", open_entry(&entry_file, 0));
+        println!("Reverting to:\n{}", open_entry(&entry_file, 1));
+        let input = get_input("Are you sure (y/n)").to_lowercase();
+        match input.as_str() {
+            "y" => {
+                for _ in 0..index {
+                    entry_file.remove(0);
+                }
+                clear();
+            },
+            _ => (),
+        }
+        if let Err(e) = entry_file.save(&user_info.user_path()) {
+            eprintln!("{}", e);
+        }
+    } else {
+        eprintln!("Couldn't open file");
     }
 }
 

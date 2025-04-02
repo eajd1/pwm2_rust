@@ -28,8 +28,19 @@ impl EntryFile {
         }
     }
 
+    /// Adds a new [Entry] to the [EntryFile]
     pub fn add(&mut self, entry: Entry) {
         self.data.push(entry);
+    }
+
+    /// Removes the ith [Entry] from the end
+    pub fn remove(&mut self, i: usize) {
+        let i = i % self.data.len();
+        match self.data.len() {
+            0 => panic!("There should always be >=1 entry in an entry file"),
+            1 => println!("Cannot remove entry, this is the last one"),
+            n => { self.data.remove(n - 1 - i); () },
+        }
     }
 
     /// Returns a copy of the name field in the [EntryFile]
@@ -70,10 +81,12 @@ impl EntryFile {
         }
     }
 
-    pub fn latest(&self) -> Option<Entry> {
+    /// Gets the ith [Entry] from the end
+    pub fn get(&self, i: usize) -> Entry {
+        let i = i % self.data.len();
         match self.data.len() {
-            0 => None,
-            n => Some(self.data[n-1].clone()),
+            0 => panic!("There should always be >=1 entry in an entry file"),
+            n => self.data[n - 1 - i].clone(),
         }
     }
 }
