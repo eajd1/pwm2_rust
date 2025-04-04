@@ -19,7 +19,7 @@
 // [x] viewable backups
 // [x] restore backup
 // [x] remove an entry
-// [_] add a way to generate random but memorable passwords
+// [x] add a way to generate random but memorable passwords
 
 use pwm2_rust::{
     *,
@@ -28,11 +28,11 @@ use pwm2_rust::{
     entry::Entry,
     smsg::SMsg,
 };
-use std::{
-    fs,
-    ops::RangeInclusive,
+use std::fs;
+use rand::{
+    Rng,
+    distributions::Alphanumeric,
 };
-use rand::Rng;
 
 fn main() {
     if fs::metadata(&get_base_path()).is_err() {
@@ -156,28 +156,58 @@ fn new_entry() -> Entry {
 }
 
 fn random_entry(length: usize) -> Entry {
-    let mut message = SMsg::new::<String>(&random_string(length));
+    let mut string = memorable_string(length);
+    println!("{}", string);
+    let mut input = get_input("generate a new password? (y/n) ").to_lowercase();
+    while input == "y" {
+        string = memorable_string(length);
+        println!("{}", string);
+        input = get_input("generate a new password? (y/n) ").to_lowercase();
+    }
+    let mut message = SMsg::new::<String>(&string);
     message.encrypt(&get_confirm_password());
     return Entry::new(message);
 }
 
-/// Generates 'length' number of random characters
-/// between ASCII values 33 and 126 (incl)
-fn random_string(length: usize) -> String {
+/// Creates a random string by generating small(4-7) random alphanumeric
+/// substrings and joins them with a seperator character until the desired
+/// length is met
+fn memorable_string(length: usize) -> String {
     let mut string = String::new();
-    for _ in 0..length {
-        let char = rand::thread_rng()
-            .gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
-        string.push(char);
+    let seperator = random_special_char();
+    while string.len() < length {
+        // Add short string
+        let random = rand::thread_rng().gen_range(4..=7);
+        let segment: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(random)
+            .map(char::from)
+            .collect();
+        string += &segment;
+
+        // Add seperator
+        if string.len() < length {
+            string += &String::from(seperator);
+        }
     }
     return string;
 }
 
-// My idea is to create a few short strings (4-8 long) using just letters
-// (maybe numbers) and seperate them by a special character (maybe number)
-fn memorable_string(length: usize) -> String {
-    // TODO
-    return String::new();
+fn random_special_char() -> char {
+    // brute force because I can't think of a better way right now
+    loop {
+        let value = rand::thread_rng()
+            .gen_range::<u8, _>(33..=126);
+        if (33..=47).contains(&value) {
+            return value as char;
+        } else if (58..=64).contains(&value) {
+            return value as char;
+        } else if (91..=96).contains(&value) {
+            return value as char;
+        } else if (123..=126).contains(&value) {
+            return value as char;
+        }
+    }
 }
 
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
