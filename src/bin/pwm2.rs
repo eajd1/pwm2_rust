@@ -88,18 +88,18 @@ fn main() {
                 revert(&user_info, name, backup);
             },
             ["list"] => list_files(&user_info),
+            ["date", name] => {
+                if let Some(entry_file) = get_file(&user_info, name) {
+                    let latest = entry_file.get(0);
+                    println!("{}", latest.get_timestamp());
+                }
+            },
             ["backups", name] => {
                 if let Some(entry_file) = get_file(&user_info, name) {
                     let dates = entry_file.dates();
                     for i in 0..dates.len() {
                         println!("{}: {}", i, dates[i].get_timestamp());
                     }
-                }
-            },
-            ["date", name] => {
-                if let Some(entry_file) = get_file(&user_info, name) {
-                    let latest = entry_file.get(0);
-                    println!("{}", latest.get_timestamp());
                 }
             },
             ["help"] => {
@@ -121,6 +121,10 @@ fn main() {
 - reverts the file to the specified backup entry");
                 println!("    list
 - Lists available files");
+                println!("    date <name>
+- Shows the date of the last entry in the file");
+                println!("    backups <name>
+- Lists the dates of all the backups in the file");
                 println!("    help
 - This is it");
                 println!("    logout
