@@ -21,6 +21,7 @@
 // [x] remove an entry
 // [x] add a way to generate random but memorable passwords
 // [_] new entries reusing names just add an entry
+// [_] syncing between computers
 
 use pwm2_rust::{
     *,
