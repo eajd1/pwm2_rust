@@ -19,9 +19,7 @@
 // [x] viewable backups
 // [x] restore backup
 // [x] remove an entry
-// [_] add a way to import data from old versions
 // [_] add a way to generate random but memerable passwords
-// [_] add a new entry with a random password
 
 use pwm2_rust::{
     *,
