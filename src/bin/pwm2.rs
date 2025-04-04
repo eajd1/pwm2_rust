@@ -19,7 +19,7 @@
 // [x] viewable backups
 // [x] restore backup
 // [x] remove an entry
-// [_] add a way to generate random but memerable passwords
+// [_] add a way to generate random but memorable passwords
 
 use pwm2_rust::{
     *,
@@ -161,14 +161,23 @@ fn random_entry(length: usize) -> Entry {
     return Entry::new(message);
 }
 
-/// Generates 'length' number of random characters between ASCII values 33 and 126 (incl)
+/// Generates 'length' number of random characters
+/// between ASCII values 33 and 126 (incl)
 fn random_string(length: usize) -> String {
     let mut string = String::new();
     for _ in 0..length {
-        let char = rand::thread_rng().gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
+        let char = rand::thread_rng()
+            .gen_range::<u8, RangeInclusive<u8>>(33..=126) as char;
         string.push(char);
     }
     return string;
+}
+
+// My idea is to create a few short strings (4-8 long) using just letters
+// (maybe numbers) and seperate them by a special character (maybe number)
+fn memorable_string(length: usize) -> String {
+    // TODO
+    return String::new();
 }
 
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
