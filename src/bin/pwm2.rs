@@ -96,6 +96,12 @@ fn main() {
                     }
                 }
             },
+            ["date", name] => {
+                if let Some(entry_file) = get_file(&user_info, name) {
+                    let latest = entry_file.get(0);
+                    println!("{}", latest.get_timestamp());
+                }
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
