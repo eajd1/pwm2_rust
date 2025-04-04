@@ -25,6 +25,14 @@ impl Entry {
         }
     }
 
+    /// Returns a new Entry containing the same timestamp is this one
+    pub fn just_date(&self) -> Entry {
+        Entry {
+            timestamp: self.timestamp.clone(),
+            message: SMsg::new::<String>(&String::new()),
+        }
+    }
+
     /// Returns and Entry if given a string that is following
     /// the format of [to_string] function
     pub fn from_string(string: &str) -> Entry {

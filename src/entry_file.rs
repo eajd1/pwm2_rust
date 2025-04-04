@@ -89,4 +89,14 @@ impl EntryFile {
             n => self.data[n - 1 - i].clone(),
         }
     }
+
+    /// Returns a vec of [Entry]ies that have the same dates as the ones
+    /// in this [EntryFile] but without the data
+    pub fn dates(&self) -> Vec<Entry> {
+        let mut vec = vec![];
+        for i in 0..self.data.len() {
+            vec.push(self.data[i].just_date());
+        }
+        return vec;
+    }
 }

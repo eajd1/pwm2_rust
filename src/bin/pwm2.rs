@@ -80,8 +80,6 @@ fn main() {
             ["update", name] => {
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     update(&user_info, &mut entry_file)
-                } else {
-                    eprintln!("Couldn't open file");
                 }
             },
             ["revert", name] => revert(&user_info, name, 0),
@@ -90,6 +88,14 @@ fn main() {
                 revert(&user_info, name, backup);
             },
             ["list"] => list_files(&user_info),
+            ["backups", name] => {
+                if let Some(entry_file) = get_file(&user_info, name) {
+                    let dates = entry_file.dates();
+                    for i in 0..dates.len() {
+                        println!("{}: {}", i, dates[i].get_timestamp());
+                    }
+                }
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
