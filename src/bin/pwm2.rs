@@ -20,6 +20,7 @@
 // [x] restore backup
 // [x] remove an entry
 // [x] add a way to generate random but memorable passwords
+// [_] new entries reusing names just add an entry
 
 use pwm2_rust::{
     *,
@@ -250,7 +251,7 @@ fn revert(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(mut entry_file) = get_file(&user_info, name) {
         println!("Latest Entry:\n{}", open_entry(&entry_file, 0));
         println!("Reverting to:\n{}", open_entry(&entry_file, 1));
-        let input = get_input("Are you sure (y/n)").to_lowercase();
+        let input = get_input("Are you sure (y/n) ").to_lowercase();
         match input.as_str() {
             "y" => {
                 for _ in 0..index {
