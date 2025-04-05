@@ -131,12 +131,15 @@ fn main() {
 - Lets you change user");
                 println!("    user
 - Displays current user");
+                println!("    clear
+- Clears the terminal");
                 println!("    exit
 - Exits the program");
                 println!();
             },
             ["logout"] => user_info = UserInfo::new(),
             ["user"] => println!("{}", user_info),
+            ["clear"] => clear(),
             ["exit", ..] => break,
             [""] | [] => continue,
             ["test", name, string] => {
