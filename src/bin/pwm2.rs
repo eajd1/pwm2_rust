@@ -20,7 +20,7 @@
 // [x] restore backup
 // [x] remove an entry
 // [x] add a way to generate random but memorable passwords
-// [_] new entries reusing names just add an entry
+// [x] new entries reusing names just add an entry
 // [_] syncing between computers
 
 use pwm2_rust::{
@@ -53,23 +53,23 @@ fn main() {
         match args[..] {
             ["new", name] => {
                 let entry = new_entry();
-                let entry_file = EntryFile::new(&user_info, name, entry);
-                if let Err(e) = entry_file.save(&user_info.user_path()) {
-                    eprintln!("{}", e);
+                if let Some(mut entry_file) = get_file(&user_info, name) {
+                    entry_file.add(entry);
+                    save_file(&user_info, &entry_file);
                 } else {
-                    println!("File saved successfully");
-                    clear();
+                    let entry_file = EntryFile::new(&user_info, name, entry);
+                    save_file(&user_info, &entry_file);
                 }
             },
             ["new", name, length] if !length.parse::<usize>().is_err() => {
                 let length = length.parse::<usize>().unwrap();
                 let entry = random_entry(length);
-                let entry_file = EntryFile::new(&user_info, name, entry);
-                if let Err(e) = entry_file.save(&user_info.user_path()) {
-                    eprintln!("{}", e);
+                if let Some(mut entry_file) = get_file(&user_info, name) {
+                    entry_file.add(entry);
+                    save_file(&user_info, &entry_file);
                 } else {
-                    println!("File saved successfully");
-                    clear();
+                    let entry_file = EntryFile::new(&user_info, name, entry);
+                    save_file(&user_info, &entry_file);
                 }
             },
             ["open", name] => open(&user_info, name, 0),
@@ -148,6 +148,15 @@ fn main() {
             },
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
+    }
+}
+
+fn save_file(user_info: &UserInfo, entry_file: &EntryFile) {
+    if let Err(e) = entry_file.save(&user_info.user_path()) {
+        eprintln!("{}", e);
+    } else {
+        println!("File saved successfully");
+        clear();
     }
 }
 
@@ -286,7 +295,6 @@ fn list_files(user_info: &UserInfo) {
         }
     }
     println!("{}", files);
-    clear();
 }
 
 /// Waits for the user to press enter then clears the screen
