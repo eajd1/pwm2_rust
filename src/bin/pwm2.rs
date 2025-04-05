@@ -183,9 +183,8 @@ fn random_entry(length: usize) -> Entry {
     return Entry::new(message);
 }
 
-/// Creates a random string by generating small(4-7) random alphanumeric
-/// substrings and joins them with a seperator character until the desired
-/// length is met
+/// Creates a random string by generating small(4-7) random alphanumeric substrings
+/// and joins them with a seperator character until the desired length is met
 fn memorable_string(length: usize) -> String {
     let mut string = String::new();
     let seperator = random_special_char();
@@ -224,6 +223,7 @@ fn random_special_char() -> char {
     }
 }
 
+/// Returns the [EntryFile] of the given name, if it exists
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
@@ -239,6 +239,7 @@ fn open(user_info: &UserInfo, name: &str, index: usize) {
     }
 }
 
+/// Returns the decrypted message of the given [Entry] index
 fn open_entry(entry_file: &EntryFile, index: usize) -> String {
     let entry = entry_file.get(index);
     let mut message = entry.get_message();
