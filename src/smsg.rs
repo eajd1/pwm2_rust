@@ -80,12 +80,13 @@ impl SMsg {
     /// Turns [SMsg] into a single line [String] of hexadecimal numbers
     pub fn to_string_hex_one_line(&self) -> String {
         self.data.iter()
-        .map(|block| -> String {
-            block.as_hex()
-        })
-        .reduce(|l, r| -> String {
-            l + &r
-        }).unwrap_or(String::from("Failed string hex conversion"))
+            .map(|block| -> String {
+                block.as_hex()
+            })
+            .reduce(|l, r| -> String {
+                l + &r
+            })
+            .unwrap_or(String::from("Failed string hex conversion"))
     }
 
     pub fn encrypt(&mut self, password: &str) {
@@ -147,6 +148,7 @@ impl SMsg {
                     l.extend(r);
                     return l;
                 }                
-            ).expect("Error extracting bytes"));
+            )
+            .expect("Error extracting bytes"));
     }
 }

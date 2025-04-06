@@ -53,10 +53,12 @@ impl EntryFile {
         let path = path.join(self.name.to_string_hex_one_line());
         let file = self.data.iter()
             .map(|entry| -> String {
-            entry.to_string()
-        }).reduce(|a, b| -> String {
-            a + "\n\n\n" + &b
-        }).unwrap();
+                entry.to_string()
+            })
+            .reduce(|a, b| -> String {
+                a + "\n\n\n" + &b
+            })
+            .unwrap();
         fs::write(path, file)
     }
 
