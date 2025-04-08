@@ -89,7 +89,10 @@ impl File for EntryFile {
             Ok(string) => {
                 let split = string.split("\n\n\n");
                 return Ok(EntryFile {
-                    name: SMsg::new::<String>(&String::from("loaded")),
+                    name: SMsg::from_hex_string_one_line(
+                              path.file_name().expect("no file name")
+                              .to_str().expect("cannot convert file name to str")
+                              ),
                     data: split.map(|entry| -> Entry {
                         Entry::from_string(&entry)
                     })
