@@ -17,7 +17,7 @@ pub mod bytes;
 
 /// Defines a type that can be saved to and loaded from a file
 pub trait File {
-    fn save(path: &Path);
+    fn save(&self, path: &Path) -> std::io::Result<()>;
     fn load(path: &Path) -> Result<Self, std::io::Error>
         where Self: Sized;
 }
