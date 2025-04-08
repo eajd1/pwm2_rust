@@ -14,6 +14,12 @@ pub mod entry;
 pub mod entry_file;
 pub mod bytes;
 
+/// Defines a type that can be saved to and loaded from a file
+pub trait File {
+    fn save(path: &PathBuf);
+    fn load(path: &PathBuf) -> Self;
+}
+
 /// Creates a new directory printing all errors to stderr,
 /// except when the directory already exists  
 pub fn create_dir(path: &PathBuf) {
