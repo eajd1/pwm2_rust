@@ -2,6 +2,7 @@ use crate::{
     user_info::UserInfo,
     entry::Entry,
     SMsg,
+    File,
 };
 use std::{
     fs,
@@ -48,41 +49,6 @@ impl EntryFile {
         &self.name
     }
 
-    /// Saves this [EntryFile] to the given path + self.name
-    pub fn save(&self, path: &Path) -> std::io::Result<()> {
-        let path = path.join(self.name.to_string_hex_one_line());
-        let file = self.data.iter()
-            .map(|entry| -> String {
-                entry.to_string()
-            })
-            .reduce(|a, b| -> String {
-                a + "\n\n\n" + &b
-            })
-            .unwrap();
-        fs::write(path, file)
-    }
-
-    /// Loads the file at the given path + self.name into this [EntryFile]
-    pub fn load(path: &Path, name: &SMsg) -> Option<EntryFile> {
-        let file = fs::read_to_string(path.join(name.to_string_hex_one_line()));
-        match file {
-            Ok(string) => {
-                let split = string.split("\n\n\n");
-                return Some(EntryFile {
-                    name: name.clone(),
-                    data: split.map(|entry| -> Entry {
-                        Entry::from_string(&entry)
-                    })
-                    .collect::<Vec<Entry>>(),
-                });
-            },
-            Err(_) => {
-                eprintln!("Could not read file: {}", path.display());
-                None
-            },
-        }
-    }
-
     /// Gets the ith [Entry] from the end
     pub fn get(&self, i: usize) -> Entry {
         let i = i % self.data.len();
@@ -100,5 +66,37 @@ impl EntryFile {
             vec.push(self.data[i].just_date());
         }
         return vec;
+    }
+}
+
+impl File for EntryFile {
+    fn save(&self, path: &Path) -> std::io::Result<()> {
+        let path = path.join(self.name.to_string_hex_one_line());
+        let file = self.data.iter()
+            .map(|entry| -> String {
+                entry.to_string()
+            })
+            .reduce(|a, b| -> String {
+                a + "\n\n\n" + &b
+            })
+            .unwrap();
+        fs::write(path, file)
+    }
+
+    fn load(path: &Path) -> Result<Self, std::io::Error> {
+        let file = fs::read_to_string(path);
+        match file {
+            Ok(string) => {
+                let split = string.split("\n\n\n");
+                return Ok(EntryFile {
+                    name: SMsg::new::<String>(&String::from("loaded")),
+                    data: split.map(|entry| -> Entry {
+                        Entry::from_string(&entry)
+                    })
+                    .collect::<Vec<Entry>>(),
+                });
+            },
+            Err(e) => Err(e),
+        }
     }
 }
