@@ -5,6 +5,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct SMsg {
+    check: Block512,
     data: Vec<Block512>,
 }
 
@@ -31,7 +32,7 @@ impl SMsg {
 
     /// string should be hexadecimal numbers seperated by newlines
     fn parse_bytes(string: &str) -> Vec<Block512> {
-        let lines: Vec<&str> = string.lines().collect();
+        let lines: Vec<&str> = string.lines().skip(1).collect();
         let mut vector = Vec::new();
         for line in lines {
             vector.push(Block512::from_hex(line));
@@ -44,7 +45,8 @@ impl SMsg {
     /// Where each block is seperated by a new line
     pub fn from_hex_string(string: &str) -> SMsg {
         SMsg {
-            data: SMsg::parse_bytes(string)
+            check: Block512::from_hex(string.lines().next().expect("No data in string")),
+            data: SMsg::parse_bytes(string),
         }
     }
 
@@ -119,6 +121,7 @@ impl SMsg {
 impl Clone for SMsg {
     fn clone(&self) -> Self {
         SMsg {
+            check: self.check.clone(),
             data: self.data.clone(),
         }
     }
@@ -131,7 +134,8 @@ impl SMsg {
     /// Where T impls [Bytes]
     pub fn new<T: Bytes>(data: &T) -> SMsg {
         SMsg {
-            data: SMsg::from_bytes(&data.to_bytes())
+            check: Block512::fill_new(255),
+            data: SMsg::from_bytes(&data.to_bytes()),
         }
     }
 

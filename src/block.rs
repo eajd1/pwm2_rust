@@ -17,6 +17,11 @@ impl Block512 {
     pub fn new() -> Block512 {
         Block512 { bytes: [0; 64] }
     }
+
+    /// Creates a new [Block512] initialised to fill
+    pub fn fill_new(fill: u8) -> Block512 {
+        Block512 { bytes: [fill; 64] }
+    }
     
     /// Creates a new Block512 from a vector of bytes
     fn from_bytes_vec(bytes: &Vec<u8>) -> Block512 {
