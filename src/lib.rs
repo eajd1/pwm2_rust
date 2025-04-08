@@ -3,6 +3,7 @@ use std::{
     io::{stdin, stdout, Write},
     time::Instant,
     path::PathBuf,
+    path::Path,
     fs,
 };
 use rpassword::read_password;
@@ -16,8 +17,9 @@ pub mod bytes;
 
 /// Defines a type that can be saved to and loaded from a file
 pub trait File {
-    fn save(path: &PathBuf);
-    fn load(path: &PathBuf) -> Self;
+    fn save(path: &Path);
+    fn load(path: &Path) -> Result<Self, std::io::Error>
+        where Self: Sized;
 }
 
 /// Creates a new directory printing all errors to stderr,
