@@ -227,7 +227,7 @@ fn random_special_char() -> char {
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
-    match EntryFile::load(&user_info.user_path().join(&name.to_string_hex_one_line())) {
+    match EntryFile::load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
         Ok(file) => Some(file),
         Err(e) => {
             eprintln!("{}", e);

@@ -99,7 +99,7 @@ pub fn new_message() -> String {
 
     // Output
     // save_file(msg.to_string_hex());
-    msg.to_string_hex()
+    msg.to_hex_string()
 }
 
 /// Encrypts the given message by the password input
@@ -116,7 +116,7 @@ pub fn encrypt_message(message: String) -> String {
 
     // Output
     // save_file(msg.to_string_hex());
-    msg.to_string_hex()
+    msg.to_hex_string()
 }
 
 /// Encrypts the given message by the password parameter
@@ -131,5 +131,5 @@ pub fn encrypt_message_with_password(message: String, password: String) -> Strin
 
     // Output
     // save_file(msg.to_string_hex());
-    msg.to_string_hex()
+    msg.to_hex_string()
 }

@@ -70,8 +70,9 @@ impl EntryFile {
 }
 
 impl File for EntryFile {
+
     fn save(&self, path: &Path) -> std::io::Result<()> {
-        let path = path.join(self.name.to_string_hex_one_line());
+        let path = path.join(self.name.to_hex_string_one_line());
         let file = self.data.iter()
             .map(|entry| -> String {
                 entry.to_string()

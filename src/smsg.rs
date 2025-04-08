@@ -3,7 +3,7 @@ use crate::{
     bytes::Bytes,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SMsg {
     check: Block512,
     data: Vec<Block512>,
@@ -71,7 +71,7 @@ impl SMsg {
     }
     
     /// Turns [SMsg] into a [String] of hexadecimal numbers
-    pub fn to_string_hex(&self) -> String {
+    pub fn to_hex_string(&self) -> String {
         let mut string = String::new();
         for block in &self.data {
             string += &(block.as_hex() + "\n");
@@ -80,7 +80,7 @@ impl SMsg {
     }
 
     /// Turns [SMsg] into a single line [String] of hexadecimal numbers
-    pub fn to_string_hex_one_line(&self) -> String {
+    pub fn to_hex_string_one_line(&self) -> String {
         self.data.iter()
             .map(|block| -> String {
                 block.as_hex()
@@ -114,15 +114,6 @@ impl SMsg {
             let hash = Block512::get_hash(&(i.to_string() + password));
             *value = &hash ^ value;
             i += 1;
-        }
-    }
-}
-
-impl Clone for SMsg {
-    fn clone(&self) -> Self {
-        SMsg {
-            check: self.check.clone(),
-            data: self.data.clone(),
         }
     }
 }

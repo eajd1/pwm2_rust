@@ -37,7 +37,7 @@ impl UserInfo {
     pub fn hash(&self) -> String {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
-        return msg.to_string_hex_one_line();
+        return msg.to_hex_string_one_line();
     }
 
     pub fn user_path(&self) -> PathBuf {
@@ -50,6 +50,6 @@ impl Display for UserInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
-        write!(f, "Name: {}\nHash: {}", &self.username, msg.to_string_hex())
+        write!(f, "Name: {}\nHash: {}", &self.username, msg.to_hex_string())
     }
 }

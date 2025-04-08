@@ -50,6 +50,7 @@ impl Entry {
         &self.timestamp
     }
 
+    /// Clones and returns the [SMsg]
     pub fn get_message(&self) -> SMsg {
         self.message.clone()
     }
@@ -60,6 +61,6 @@ impl Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}\n\n{}",
                 self.timestamp,
-                self.message.to_string_hex()))
+                self.message.to_hex_string()))
     }
 }
