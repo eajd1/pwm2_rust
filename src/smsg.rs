@@ -130,6 +130,12 @@ impl SMsg {
         }
     }
 
+    /// Returns true if the supplied password makes check sum to 0
+    pub fn is_password(&self, password: &str) -> bool {
+        let hash = Block512::get_hash(password);
+        return (&self.check ^ &hash).sum() == 0;
+    }
+
     pub fn is_plain(&self) -> bool {
         self.check.sum() == 0
     }

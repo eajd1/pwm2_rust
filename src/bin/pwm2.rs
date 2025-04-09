@@ -247,8 +247,12 @@ fn open(user_info: &UserInfo, name: &str, index: usize) {
 fn open_entry(entry_file: &EntryFile, index: usize) -> String {
     let entry = entry_file.get(index);
     let mut message = entry.get_message();
+    let mut password = &get_password("Enter password: ");
+    while !message.is_password(password) {
+        println!("Incorrect password");
+        password = &get_password("Enter password: ");
+    }
     message.decrypt(&get_password("Enter password: "));
-    // TODO check if the password is correct
     return message.to_utf8_string();
 }
 
