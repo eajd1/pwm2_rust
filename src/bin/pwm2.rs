@@ -82,7 +82,7 @@ fn main() {
                     update(&user_info, &mut entry_file)
                 }
             },
-            ["revert", name] => revert(&user_info, name, 0),
+            ["revert", name] => revert(&user_info, name, 1),
             ["revert", name, backup] if !backup.parse::<usize>().is_err() => {
                 let backup = backup.parse::<usize>().unwrap();
                 revert(&user_info, name, backup);
@@ -261,30 +261,22 @@ fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
     println!("{}", &latest);
     let entry = new_entry();
     entry_file.add(entry);
-    if let Err(e) = entry_file.save(&user_info.user_path()) {
-        eprintln!("{}", e);
-    } else {
-        println!("File saved successfully");
-        clear();
-    }
+    save_file(&user_info, &entry_file);
 }
 
 fn revert(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(mut entry_file) = get_file(&user_info, name) {
         println!("Latest Entry:\n{}", open_entry(&entry_file, 0));
-        println!("Reverting to:\n{}", open_entry(&entry_file, 1));
+        println!("Reverting to:\n{}", open_entry(&entry_file, index));
         let input = get_input("Are you sure (y/n) ").to_lowercase();
         match input.as_str() {
             "y" => {
                 for _ in 0..index {
                     entry_file.remove(0);
                 }
-                clear();
+                save_file(&user_info, &entry_file);
             },
             _ => (),
-        }
-        if let Err(e) = entry_file.save(&user_info.user_path()) {
-            eprintln!("{}", e);
         }
     }
 }

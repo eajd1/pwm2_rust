@@ -13,7 +13,7 @@ use std::{
 #[derive(Debug)]
 pub struct EntryFile {
     name: SMsg, // This should always be stored in encrypted form
-    data: Vec<Entry>,
+    entries: Vec<Entry>,
 }
 
 impl EntryFile {
@@ -25,22 +25,22 @@ impl EntryFile {
                 name.encrypt(&user_info.hash());
                 name
             },
-            data: vec![entry],
+            entries: vec![entry],
         }
     }
 
     /// Adds a new [Entry] to the [EntryFile]
     pub fn add(&mut self, entry: Entry) {
-        self.data.push(entry);
+        self.entries.push(entry);
     }
 
-    /// Removes the ith [Entry] from the end
+    /// Removes the ith [Entry] from the latest
     pub fn remove(&mut self, i: usize) {
-        let i = i % self.data.len();
-        match self.data.len() {
+        let i = i % self.entries.len();
+        match self.entries.len() {
             0 => panic!("There should always be >=1 entry in an entry file"),
             1 => println!("Cannot remove entry, this is the last one"),
-            n => { self.data.remove(n - 1 - i); () },
+            n => { self.entries.remove(n - 1 - i); () },
         }
     }
 
@@ -49,12 +49,12 @@ impl EntryFile {
         &self.name
     }
 
-    /// Gets the ith [Entry] from the end
+    /// Gets the ith [Entry] from the latest
     pub fn get(&self, i: usize) -> Entry {
-        let i = i % self.data.len();
-        match self.data.len() {
+        let i = i % self.entries.len();
+        match self.entries.len() {
             0 => panic!("There should always be >=1 entry in an entry file"),
-            n => self.data[n - 1 - i].clone(),
+            n => self.entries[n - 1 - i].clone(),
         }
     }
 
@@ -62,9 +62,10 @@ impl EntryFile {
     /// in this [EntryFile] but without the data
     pub fn dates(&self) -> Vec<Entry> {
         let mut vec = vec![];
-        for i in 0..self.data.len() {
-            vec.push(self.data[i].just_date());
+        for i in 0..self.entries.len() {
+            vec.push(self.entries[i].just_date());
         }
+        vec.reverse();
         return vec;
     }
 }
@@ -73,7 +74,7 @@ impl File for EntryFile {
 
     fn save(&self, path: &Path) -> std::io::Result<()> {
         let path = path.join(self.name.to_hex_string_one_line());
-        let file = self.data.iter()
+        let file = self.entries.iter()
             .map(|entry| -> String {
                 entry.to_string()
             })
@@ -94,7 +95,7 @@ impl File for EntryFile {
                               path.file_name().expect("no file name")
                               .to_str().expect("cannot convert file name to str")
                               ),
-                    data: split.map(|entry| -> Entry {
+                    entries: split.map(|entry| -> Entry {
                         Entry::from_string(&entry)
                     })
                     .collect::<Vec<Entry>>(),
