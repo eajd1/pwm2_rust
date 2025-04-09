@@ -46,7 +46,7 @@ impl SMsg {
     pub fn from_hex_string(string: &str) -> SMsg {
         SMsg {
             check: Block512::from_hex(
-                       string.lines().next().expect("No data in string")
+                       string.lines().next().expect("No check in string")
                        ),
             data: SMsg::parse_bytes(string),
         }
@@ -60,9 +60,12 @@ impl SMsg {
         for i in (128..string.len()).step_by(128) {
             string.insert(i, '\n');
         }
-        return Self::from_hex_string(&string);
+        SMsg {
+            check: Block512::new(),
+            data: SMsg::parse_bytes(&string),
+        }
     }
-    
+
     /// Turns [SMsg] into a text [String]
     pub fn to_utf8_string(&self) -> String {
         let mut string = String::new();
@@ -71,10 +74,11 @@ impl SMsg {
         }
         return string;
     }
-    
+
     /// Turns [SMsg] into a [String] of hexadecimal numbers
     pub fn to_hex_string(&self) -> String {
         let mut string = String::new();
+        string += &(self.check.as_hex() + "\n");
         for block in &self.data {
             string += &(block.as_hex() + "\n");
         }
@@ -123,6 +127,10 @@ impl SMsg {
 
     pub fn is_plain(&self) -> bool {
         self.check.sum() == 0
+    }
+
+    pub fn set_plain(&mut self) {
+        self.check = Block512::new();
     }
 }
 

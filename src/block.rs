@@ -10,9 +10,9 @@ use sha2::{Sha512, Digest};
 pub struct Block512 {
     bytes: [u8; 64],
 }
-    
+
 impl Block512 {
-    
+
     /// Creates a new [Block512] initialised to 0
     pub fn new() -> Block512 {
         Block512 { bytes: [0; 64] }
@@ -22,7 +22,7 @@ impl Block512 {
     pub fn fill_new(fill: u8) -> Block512 {
         Block512 { bytes: [fill; 64] }
     }
-    
+
     /// Creates a new Block512 from a vector of bytes
     fn from_bytes_vec(bytes: &Vec<u8>) -> Block512 {
         let mut block = Block512::new();
@@ -40,7 +40,7 @@ impl Block512 {
         }
         return block;
     }
-    
+
     /// Returns a [String] that the [Block512] represents
     /// 
     /// For getting plain text out of the [Block512]
@@ -52,7 +52,7 @@ impl Block512 {
             String::from(String::from_utf8_lossy(&self.bytes))
         }
     }
-    
+
     /// Returns None if there is no padding or Some(padding) if there is padding
     fn padding(&self) -> Option<usize> {
         let pad = self.bytes[63];
