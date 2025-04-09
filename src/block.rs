@@ -102,8 +102,14 @@ impl Block512 {
         let result = hasher.finalize();
         return Block512::from_bytes(&result[..]).as_hex();
     }
+
+    pub fn sum(&self) -> u8 {
+        self.bytes.into_iter().reduce(|l, r| -> u8 {
+            l + r
+        }).unwrap()
+    }
 }
-   
+ 
 impl BitXor for &Block512 {
     type Output = Block512;
     

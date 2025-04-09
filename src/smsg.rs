@@ -45,7 +45,9 @@ impl SMsg {
     /// Where each block is seperated by a new line
     pub fn from_hex_string(string: &str) -> SMsg {
         SMsg {
-            check: Block512::from_hex(string.lines().next().expect("No data in string")),
+            check: Block512::from_hex(
+                       string.lines().next().expect("No data in string")
+                       ),
             data: SMsg::parse_bytes(string),
         }
     }
@@ -92,29 +94,35 @@ impl SMsg {
     }
 
     pub fn encrypt(&mut self, password: &str) {
-        Self::cypher(&mut self.data, password)
+        self.cypher(password)
     }
 
     pub fn decrypt(&mut self, password: &str) {
-        Self::cypher(&mut self.data, password)
+        self.cypher(password)
     }
 
     /// returns a copy of this [SMsg] decrypted
     pub fn decrypted(&self, password: &str) -> SMsg {
         let mut copy = self.clone();
-        Self::cypher(&mut copy.data, password);
+        copy.decrypt(password);
         return copy
     }
 
-    fn cypher(data: &mut Vec<Block512>, password: &str) {
+    fn cypher(&mut self, password: &str) {
+        let hash = Block512::get_hash(password);
+        self.check = &hash ^ &self.check;
         // block increment value to ensure that different blocks with
         // the same plain text encrypt differently
         let mut i = 0;
-        for value in data.iter_mut() {
+        for value in self.data.iter_mut() {
             let hash = Block512::get_hash(&(i.to_string() + password));
             *value = &hash ^ value;
             i += 1;
         }
+    }
+
+    pub fn is_plain(&self) -> bool {
+        self.check.sum() == 0
     }
 }
 
@@ -125,7 +133,7 @@ impl SMsg {
     /// Where T impls [Bytes]
     pub fn new<T: Bytes>(data: &T) -> SMsg {
         SMsg {
-            check: Block512::fill_new(255),
+            check: Block512::new(),
             data: SMsg::from_bytes(&data.to_bytes()),
         }
     }
