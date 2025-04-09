@@ -32,9 +32,8 @@ impl SMsg {
 
     /// string should be hexadecimal numbers seperated by newlines
     fn parse_bytes(string: &str) -> Vec<Block512> {
-        let lines: Vec<&str> = string.lines().skip(1).collect();
         let mut vector = Vec::new();
-        for line in lines {
+        for line in string.lines() {
             vector.push(Block512::from_hex(line));
         }
         return vector;
@@ -44,17 +43,23 @@ impl SMsg {
     ///
     /// Where each block is seperated by a new line
     pub fn from_hex_string(string: &str) -> SMsg {
+        let mut lines = string.lines();
+        let check = lines.next().expect("No check in string");
+        let data = lines.map(|s| String::from(s))
+            .reduce(|l, r| -> String {
+                l + &r
+            }).expect("No data in string");
         SMsg {
-            check: Block512::from_hex(
-                       string.lines().next().expect("No check in string")
-                       ),
-            data: SMsg::parse_bytes(string),
+            check: Block512::from_hex(check),
+            data: SMsg::parse_bytes(&data),
         }
     }
 
     /// Converts a hex string into [SMsg]
     ///
     /// Where the string is just one line
+    ///
+    /// Defaults check to 0
     pub fn from_hex_string_one_line(string: &str) -> SMsg {
         let mut string = string.to_string();
         for i in (128..string.len()).step_by(128) {
@@ -94,7 +99,7 @@ impl SMsg {
             .reduce(|l, r| -> String {
                 l + &r
             })
-            .unwrap_or(String::from("Failed string hex conversion"))
+            .unwrap_or(String::from("Failed hex string conversion"))
     }
 
     pub fn encrypt(&mut self, password: &str) {
