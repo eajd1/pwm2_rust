@@ -105,7 +105,7 @@ impl Block512 {
 
     pub fn sum(&self) -> u8 {
         self.bytes.into_iter().reduce(|l, r| -> u8 {
-            l + r
+            l.wrapping_add(r)
         }).unwrap()
     }
 }
