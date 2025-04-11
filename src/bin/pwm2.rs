@@ -103,6 +103,18 @@ fn main() {
                     }
                 }
             },
+            ["remove", name] => {
+                if let Some(entry_file) = get_file(&user_info, name) {
+                    if get_input(&format!(
+                        "Type 'remove {}' again to permanently delete this file\n",
+                        name)) == format!("remove {}", name) {
+                        if let Err(e) = 
+                            fs::remove_file(entry_file.get_path(&user_info)) {
+                                eprintln!("{}", e);
+                        }
+                    }
+                }
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
@@ -126,6 +138,8 @@ fn main() {
 - Shows the date of the last entry in the file");
                 println!("    backups <name>
 - Lists the dates of all the backups in the file");
+                println!("    remove <name>
+- Permanently deletes the specified file");
                 println!("    help
 - This is it");
                 println!("    logout
