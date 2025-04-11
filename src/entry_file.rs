@@ -1,12 +1,9 @@
 use crate::{
+    *,
     user_info::UserInfo,
     entry::Entry,
     SMsg,
-    File,
-};
-use std::{
-    fs,
-    path::Path,
+    FromString,
 };
 
 /// Represents a Single [Entry] and all its backups from a file
@@ -68,13 +65,17 @@ impl EntryFile {
         vec.reverse();
         return vec;
     }
+
+    pub fn get_path(&self, user_info: &UserInfo) -> PathBuf {
+        user_info.user_path().join(self.name.to_hex_string_one_line())
+    }
 }
 
-impl File for EntryFile {
+impl std::fmt::Display for EntryFile {
 
-    fn save(&self, path: &Path) -> std::io::Result<()> {
-        let path = path.join(self.name.to_hex_string_one_line());
-        let file = self.entries.iter()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut string = self.name.to_hex_string_one_line() + "\ne\n";
+        string += &self.entries.iter()
             .map(|entry| -> String {
                 entry.to_string()
             })
@@ -82,26 +83,23 @@ impl File for EntryFile {
                 a + "\n\n\n" + &b
             })
             .unwrap();
-        fs::write(path, file)
+        f.write_fmt(format_args!("{}", string))
     }
+}
 
-    fn load(path: &Path) -> Result<Self, std::io::Error> {
-        let file = fs::read_to_string(path);
-        match file {
-            Ok(string) => {
-                let split = string.split("\n\n\n");
-                return Ok(EntryFile {
-                    name: SMsg::from_hex_string_one_line(
-                              path.file_name().expect("no file name")
-                              .to_str().expect("cannot convert file name to str")
-                              ),
-                    entries: split.map(|entry| -> Entry {
-                        Entry::from_string(&entry)
-                    })
-                    .collect::<Vec<Entry>>(),
-                });
-            },
-            Err(e) => Err(e),
+impl FromString for EntryFile {
+
+    fn from_string(string: &str) -> Self {
+        let mut split = string.split("\ne\n");
+        let name = split.next().expect("Nothing to split");
+        let split = split.next().expect("Couldn't find next value in split")
+            .split("\n\n\n");
+        EntryFile {
+            name: SMsg::from_hex_string_one_line(name),
+            entries: split.map(|entry| -> Entry {
+                Entry::from_string(&entry)
+            })
+            .collect::<Vec<Entry>>(),
         }
     }
 }

@@ -142,20 +142,13 @@ fn main() {
             ["clear"] => clear(),
             ["exit", ..] => break,
             [""] | [] => continue,
-            ["test", name, string] => {
-                let mut test = SMsg::new::<String>(&String::from(string));
-                test.encrypt(&get_confirm_password());
-                let test = Entry::new(test);
-                let test = EntryFile::new(&user_info, name, test);
-                let _ = test.save(&user_info.user_path());
-            },
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
     }
 }
 
 fn save_file(user_info: &UserInfo, entry_file: &EntryFile) {
-    if let Err(e) = entry_file.save(&user_info.user_path()) {
+    if let Err(e) = save(&entry_file.get_path(&user_info), &entry_file.to_string()) {
         eprintln!("{}", e);
     } else {
         println!("File saved successfully");
@@ -227,8 +220,8 @@ fn random_special_char() -> char {
 fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     let mut name = SMsg::new::<String>(&String::from(name));
     name.encrypt(&user_info.hash());
-    match EntryFile::load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
-        Ok(file) => Some(file),
+    match load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
+        Ok(file) => Some(EntryFile::from_string(&file)),
         Err(e) => {
             eprintln!("{}", e);
             None

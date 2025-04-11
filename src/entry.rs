@@ -1,5 +1,6 @@
 use crate::{
     smsg::SMsg,
+    FromString,
 };
 use std::fmt::Display;
 use chrono::{Utc, DateTime};
@@ -33,19 +34,6 @@ impl Entry {
         }
     }
 
-    /// Returns and Entry if given a string that is following
-    /// the format of [to_string] function
-    pub fn from_string(string: &str) -> Entry {
-        let mut split = string.split("\n\n");
-        let timestamp = split.next().unwrap();
-        let message = split.next().unwrap();
-
-        return Entry {
-            timestamp: timestamp.parse().unwrap(),
-            message: SMsg::from_hex_string(&message),
-        }
-    }
-
     pub fn get_timestamp(&self) -> &DateTime<Utc> {
         &self.timestamp
     }
@@ -61,6 +49,20 @@ impl Display for Entry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}\n\n{}",
                 self.timestamp,
-                self.message.to_hex_string()))
+                self.message.to_string()))
+    }
+}
+
+impl FromString for Entry {
+
+    fn from_string(string: &str) -> Self {
+        let mut split = string.split("\n\n");
+        let timestamp = split.next().unwrap();
+        let message = split.next().unwrap();
+
+        return Entry {
+            timestamp: timestamp.parse().unwrap(),
+            message: SMsg::from_string(&message),
+        }
     }
 }

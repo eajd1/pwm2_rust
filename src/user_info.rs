@@ -50,6 +50,6 @@ impl Display for UserInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);
-        write!(f, "Name: {}\nHash: {}", &self.username, msg.to_hex_string())
+        write!(f, "Name: {}\nHash: {}", &self.username, msg.to_string())
     }
 }

@@ -1,6 +1,7 @@
 use crate::{
     block::Block512,
     bytes::Bytes,
+    FromString,
 };
 
 #[derive(Clone, Debug)]
@@ -39,20 +40,13 @@ impl SMsg {
         return vector;
     }
 
-    /// Converts a hex string into [SMsg]
-    ///
-    /// Where each block is seperated by a new line
-    pub fn from_hex_string(string: &str) -> SMsg {
-        let mut lines = string.lines();
-        let check = lines.next().expect("No check in string");
-        let data = lines.map(|s| String::from(s))
-            .reduce(|l, r| -> String {
-                l + &r
-            }).expect("No data in string");
-        SMsg {
-            check: Block512::from_hex(check),
-            data: SMsg::parse_bytes(&data),
+    /// Turns [SMsg] into a text [String]
+    pub fn to_utf8_string(&self) -> String {
+        let mut string = String::new();
+        for block in &self.data {
+            string += &block.to_utf8_string();
         }
+        return string;
     }
 
     /// Converts a hex string into [SMsg]
@@ -69,25 +63,6 @@ impl SMsg {
             check: Block512::new(),
             data: SMsg::parse_bytes(&string),
         }
-    }
-
-    /// Turns [SMsg] into a text [String]
-    pub fn to_utf8_string(&self) -> String {
-        let mut string = String::new();
-        for block in &self.data {
-            string += &block.to_utf8_string();
-        }
-        return string;
-    }
-
-    /// Turns [SMsg] into a [String] of hexadecimal numbers
-    pub fn to_hex_string(&self) -> String {
-        let mut string = String::new();
-        string += &(self.check.as_hex() + "\n");
-        for block in &self.data {
-            string += &(block.as_hex() + "\n");
-        }
-        return string.trim_end().to_string();
     }
 
     /// Turns [SMsg] into a single line [String] of hexadecimal numbers
@@ -172,5 +147,37 @@ impl SMsg {
                 }                
             )
             .expect("Error extracting bytes"));
+    }
+}
+
+impl std::fmt::Display for SMsg {
+
+    /// Turns [SMsg] into a [String] of hexadecimal numbers
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut string = String::new();
+        string += &(self.check.as_hex() + "\n");
+        for block in &self.data {
+            string += &(block.as_hex() + "\n");
+        }
+        f.write_fmt(format_args!("{}", string.trim_end()))
+    }
+}
+
+impl FromString for SMsg {
+
+    /// Converts a hex string into [SMsg]
+    ///
+    /// Where each block is seperated by a new line
+    fn from_string(string: &str) -> Self {
+        let mut lines = string.lines();
+        let check = lines.next().expect("No check in string");
+        let data = lines.map(|s| String::from(s))
+            .reduce(|l, r| -> String {
+                l + &r
+            }).expect("No data in string");
+        SMsg {
+            check: Block512::from_hex(check),
+            data: SMsg::parse_bytes(&data),
+        }
     }
 }

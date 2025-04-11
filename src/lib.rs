@@ -15,11 +15,17 @@ pub mod entry;
 pub mod entry_file;
 pub mod bytes;
 
-/// Defines a type that can be saved to and loaded from a file
-pub trait File {
-    fn save(&self, path: &Path) -> std::io::Result<()>;
-    fn load(path: &Path) -> Result<Self, std::io::Error>
-        where Self: Sized;
+
+pub trait FromString where Self: std::fmt::Display {
+    fn from_string(string: &str) -> Self;
+}
+
+pub fn save(path: &Path, string: &str) -> std::io::Result<()> {
+    fs::write(path, string)
+}
+
+pub fn load(path: &Path) -> Result<String, std::io::Error> {
+    fs::read_to_string(path)
 }
 
 /// Creates a new directory printing all errors to stderr,
@@ -98,8 +104,7 @@ pub fn new_message() -> String {
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output
-    // save_file(msg.to_string_hex());
-    msg.to_hex_string()
+    msg.to_string()
 }
 
 /// Encrypts the given message by the password input
@@ -115,8 +120,7 @@ pub fn encrypt_message(message: String) -> String {
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output
-    // save_file(msg.to_string_hex());
-    msg.to_hex_string()
+    msg.to_string()
 }
 
 /// Encrypts the given message by the password parameter
@@ -130,6 +134,5 @@ pub fn encrypt_message_with_password(message: String, password: String) -> Strin
     println!("Encrypted in: {:?}", start.elapsed());
 
     // Output
-    // save_file(msg.to_string_hex());
-    msg.to_hex_string()
+    msg.to_string()
 }
