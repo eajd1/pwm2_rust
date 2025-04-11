@@ -90,8 +90,9 @@ fn main() {
             ["list"] => list_files(&user_info),
             ["date", name] => {
                 if let Some(entry_file) = get_file(&user_info, name) {
-                    let latest = entry_file.get(0);
-                    println!("{}", latest.get_timestamp());
+                    if let Some(latest) = entry_file.get(0) {
+                        println!("{}", latest.get_timestamp());
+                    }
                 }
             },
             ["backups", name] => {
@@ -236,17 +237,19 @@ fn open(user_info: &UserInfo, name: &str, index: usize) {
     }
 }
 
-/// Returns the decrypted message of the given [Entry] index
+/// Returns the decrypted message of the [Entry] specified by index
 fn open_entry(entry_file: &EntryFile, index: usize) -> String {
-    let entry = entry_file.get(index);
-    let mut message = entry.get_message();
-    let mut password = get_password("Enter password: ");
-    while !message.is_password(&password) {
-        println!("Incorrect password");
-        password = get_password("Enter password: ");
+    if let Some(entry) = entry_file.get(index) {
+        let mut message = entry.get_message();
+        let mut password = get_password("Enter password: ");
+        while !message.is_password(&password) {
+            println!("Incorrect password");
+            password = get_password("Enter password: ");
+        }
+        message.decrypt(&password);
+        return message.to_utf8_string();
     }
-    message.decrypt(&password);
-    return message.to_utf8_string();
+    return String::from("Could not open specified entry");
 }
 
 fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
@@ -259,13 +262,24 @@ fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
 
 fn revert(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(mut entry_file) = get_file(&user_info, name) {
+        if entry_file.len() <= 1 {
+            eprintln!("Cannot revert, there is nothing to revert to.");
+            return ();
+        }
+        if index >= entry_file.len() {
+            eprintln!("Index '{}' too large", index);
+            return ();
+        }
         println!("Latest Entry:\n{}", open_entry(&entry_file, 0));
         println!("Reverting to:\n{}", open_entry(&entry_file, index));
         let input = get_input("Are you sure (y/n) ").to_lowercase();
         match input.as_str() {
             "y" => {
                 for _ in 0..index {
-                    entry_file.remove(0);
+                    if let Err(e) = entry_file.remove(0) {
+                        eprintln!("{}", e);
+                        return ();
+                    }
                 }
                 save_file(&user_info, &entry_file);
             },

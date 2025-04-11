@@ -32,13 +32,22 @@ impl EntryFile {
     }
 
     /// Removes the ith [Entry] from the latest
-    pub fn remove(&mut self, i: usize) {
+    ///
+    /// Does NOT remove the last [Entry]
+    pub fn remove(&mut self, i: usize) -> Result<(), String> {
+        if i >= self.len() {
+            return Err(format!("Index '{}' out of range", i));
+        }
         let i = i % self.entries.len();
         match self.entries.len() {
             0 => panic!("There should always be >=1 entry in an entry file"),
-            1 => println!("Cannot remove entry, this is the last one"),
-            n => { self.entries.remove(n - 1 - i); () },
+            1 => Err(String::from("Cannot remove last entry")),
+            n => { self.entries.remove(n - 1 - i); Ok(()) },
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
     }
 
     /// Returns a copy of the name field in the [EntryFile]
@@ -47,11 +56,13 @@ impl EntryFile {
     }
 
     /// Gets the ith [Entry] from the latest
-    pub fn get(&self, i: usize) -> Entry {
-        let i = i % self.entries.len();
+    pub fn get(&self, i: usize) -> Option<Entry> {
+        if i >= self.len() {
+            return None;
+        }
         match self.entries.len() {
             0 => panic!("There should always be >=1 entry in an entry file"),
-            n => self.entries[n - 1 - i].clone(),
+            n => Some(self.entries[n - 1 - i].clone()),
         }
     }
 
