@@ -115,6 +115,23 @@ fn main() {
                     }
                 }
             },
+            ["sync"] => {
+                // TODO sync data with another instance
+                // This 'sync' command will be the host and display an ip
+                // where a 'sync x.x.x.x' command will connect to
+                // and become the client.
+                //
+                // Communication outline:
+                // The client will send the user hash to the host and if it isnt
+                // the same as the one on the host the connection will end.
+                // The client will send the dates of the latest entries of
+                // all the files for the current user it has to the host.
+                // The host will work out which files it needs and which files
+                // the client needs.
+                // The host will ask for the files it needs.
+                // The host will send the files the clients needs.
+            },
+            ["sync", ip] => (), // TODO see above
             ["help"] => {
                 println!();
                 println!("Available Commands:");
