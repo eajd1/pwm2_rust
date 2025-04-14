@@ -51,7 +51,7 @@ fn main() {
     let mut user_info = UserInfo::new();
 
     println!("type 'help' for list of commands");
-    loop {
+    'main: loop {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
@@ -137,16 +137,18 @@ fn main() {
                 if let Ok(ip) = local_ip() {
                     println!("ip address is: {:?}", ip);
                     let socket = format!("{:?}", ip) + ":51104";
-                    let tcp_listener = TcpListener::bind(&socket).unwrap();
-
-                    for stream in tcp_listener.incoming() {
-                        match stream {
-                            Ok(stream) => {
-                                println!("Connection from: {}", stream.peer_addr().unwrap());
-                                ()
-                            },
-                            Err(_) => (),
+                    if let Ok(tcp_listener) = TcpListener::bind(&socket) {
+                        for stream in tcp_listener.incoming() {
+                            match stream {
+                                Ok(stream) => {
+                                    println!("Connection from: {}", stream.peer_addr().unwrap());
+                                    continue 'main
+                                },
+                                Err(_) => continue 'main,
+                            }
                         }
+                    } else {
+                        println!("Failed to bind to socket, try again later");
                     }
                 } else {
                     println!("Couldn't get local ip address. Check network connection");
