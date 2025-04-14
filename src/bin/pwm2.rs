@@ -155,7 +155,11 @@ fn main() {
                 }
             },
             ["sync", ip] => { // TODO see above
-                let stream = TcpStream::connect(String::from(ip) + ":51104").unwrap();
+                if let Ok(stream) = TcpStream::connect(String::from(ip) + ":51104") {
+                    ()
+                } else {
+                    println!("Failed to connect to: {}", ip);
+                }
             },
             ["help"] => {
                 println!();
