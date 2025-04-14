@@ -135,7 +135,7 @@ fn main() {
                 // The host will ask for the files it needs.
                 // The host will send the files the clients needs.
                 if let Ok(ip) = local_ip() {
-                    println!("ip is: {:?}", ip);
+                    println!("ip address is: {:?}", ip);
                     let socket = format!("{:?}", ip) + ":51104";
                     let tcp_listener = TcpListener::bind(&socket).unwrap();
 
@@ -149,7 +149,7 @@ fn main() {
                         }
                     }
                 } else {
-                    println!("Couldn't get ip. Check network connection");
+                    println!("Couldn't get local ip address. Check network connection");
                 }
             },
             ["sync", ip] => { // TODO see above
