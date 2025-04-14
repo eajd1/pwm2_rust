@@ -30,11 +30,15 @@ use pwm2_rust::{
     entry::Entry,
     smsg::SMsg,
 };
-use std::fs;
+use std::{
+    fs,
+    net::{TcpStream, TcpListener},
+};
 use rand::{
     Rng,
     distributions::Alphanumeric,
 };
+use local_ip_address::local_ip;
 
 fn main() {
     if fs::metadata(&get_base_path()).is_err() {
@@ -130,8 +134,27 @@ fn main() {
                 // the client needs.
                 // The host will ask for the files it needs.
                 // The host will send the files the clients needs.
+                if let Ok(ip) = local_ip() {
+                    println!("ip is: {:?}", ip);
+                    let socket = format!("{:?}", ip) + ":51104";
+                    let tcp_listener = TcpListener::bind(&socket).unwrap();
+
+                    for stream in tcp_listener.incoming() {
+                        match stream {
+                            Ok(stream) => {
+                                println!("Connection from: {}", stream.peer_addr().unwrap());
+                                ()
+                            },
+                            Err(_) => (),
+                        }
+                    }
+                } else {
+                    println!("Couldn't get ip. Check network connection");
+                }
             },
-            ["sync", ip] => (), // TODO see above
+            ["sync", ip] => { // TODO see above
+                let stream = TcpStream::connect(String::from(ip) + ":51104").unwrap();
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
