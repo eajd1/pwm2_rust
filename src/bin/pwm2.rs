@@ -144,7 +144,10 @@ fn main() {
                                     println!("Connection from: {}", stream.peer_addr().unwrap());
                                     continue 'main
                                 },
-                                Err(_) => continue 'main,
+                                Err(e) => {
+                                    println!("Error: {}", e);
+                                    continue 'main
+                                },
                             }
                         }
                     } else {
@@ -155,6 +158,10 @@ fn main() {
                 }
             },
             ["sync", ip] => { // TODO see above
+                if !valid_ip(&ip) {
+                    println!("Invalid ip entered");
+                    continue 'main
+                }
                 if let Ok(stream) = TcpStream::connect(String::from(ip) + ":51104") {
                     ()
                 } else {
@@ -370,4 +377,18 @@ fn list_files(user_info: &UserInfo) {
 fn clear() {
     get_input("Press enter to continue: ");
     clearscreen::clear().expect("Failed to clear screen");
+}
+
+/// Returns true if the given ip address is in the form x.x.x.x
+/// where x is a valid u8
+fn valid_ip(ip: &str) -> bool {
+    if ip.split(".").count() == 4 {
+        for num in ip.split(".") {
+            if num.parse::<u8>().is_err() {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
