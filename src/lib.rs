@@ -14,6 +14,7 @@ pub mod user_info;
 pub mod entry;
 pub mod entry_file;
 pub mod bytes;
+pub mod connect;
 
 
 pub trait FromString where Self: std::fmt::Display {

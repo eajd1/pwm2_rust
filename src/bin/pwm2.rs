@@ -29,6 +29,7 @@ use pwm2_rust::{
     entry_file::EntryFile,
     entry::Entry,
     smsg::SMsg,
+    connect,
 };
 use std::{
     fs,
@@ -38,7 +39,6 @@ use rand::{
     Rng,
     distributions::Alphanumeric,
 };
-use local_ip_address::local_ip;
 
 fn main() {
     if fs::metadata(&get_base_path()).is_err() {
@@ -119,55 +119,8 @@ fn main() {
                     }
                 }
             },
-            ["sync"] => {
-                // TODO sync data with another instance
-                // This 'sync' command will be the host and display an ip
-                // where a 'sync x.x.x.x' command will connect to
-                // and become the client.
-                //
-                // Communication outline:
-                // The client will send the user hash to the host and if it isnt
-                // the same as the one on the host the connection will end.
-                // The client will send the dates of the latest entries of
-                // all the files for the current user it has to the host.
-                // The host will work out which files it needs and which files
-                // the client needs.
-                // The host will ask for the files it needs.
-                // The host will send the files the clients needs.
-                if let Ok(ip) = local_ip() {
-                    println!("ip address is: {:?}", ip);
-                    let socket = format!("{:?}", ip) + ":51104";
-                    if let Ok(tcp_listener) = TcpListener::bind(&socket) {
-                        for stream in tcp_listener.incoming() {
-                            match stream {
-                                Ok(stream) => {
-                                    println!("Connection from: {}", stream.peer_addr().unwrap());
-                                    continue 'main
-                                },
-                                Err(e) => {
-                                    println!("Error: {}", e);
-                                    continue 'main
-                                },
-                            }
-                        }
-                    } else {
-                        println!("Failed to bind to socket, try again later");
-                    }
-                } else {
-                    println!("Couldn't get local ip address. Check network connection");
-                }
-            },
-            ["sync", ip] => { // TODO see above
-                if !valid_ip(&ip) {
-                    println!("Invalid ip entered");
-                    continue 'main
-                }
-                if let Ok(stream) = TcpStream::connect(String::from(ip) + ":51104") {
-                    ()
-                } else {
-                    println!("Failed to connect to: {}", ip);
-                }
-            },
+            ["sync"] => connect::host_connection(&user_info),
+            ["sync", ip] => connect::client_connection(&user_info, ip),
             ["help"] => {
                 println!();
                 println!("Available Commands:");
@@ -377,18 +330,4 @@ fn list_files(user_info: &UserInfo) {
 fn clear() {
     get_input("Press enter to continue: ");
     clearscreen::clear().expect("Failed to clear screen");
-}
-
-/// Returns true if the given ip address is in the form x.x.x.x
-/// where x is a valid u8
-fn valid_ip(ip: &str) -> bool {
-    if ip.split(".").count() == 4 {
-        for num in ip.split(".") {
-            if num.parse::<u8>().is_err() {
-                return false;
-            }
-        }
-        return true;
-    }
-    return false;
 }
