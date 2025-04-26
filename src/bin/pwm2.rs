@@ -31,10 +31,7 @@ use pwm2_rust::{
     smsg::SMsg,
     connect,
 };
-use std::{
-    fs,
-    net::{TcpStream, TcpListener},
-};
+use std::fs;
 use rand::{
     Rng,
     distributions::Alphanumeric,
@@ -51,7 +48,7 @@ fn main() {
     let mut user_info = UserInfo::new();
 
     println!("type 'help' for list of commands");
-    'main: loop {
+    loop {
         let input = get_input("> ").to_lowercase();
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
