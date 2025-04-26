@@ -8,6 +8,7 @@ use local_ip_address::local_ip;
 pub enum Message {
     Exit,
     Ok,
+    Hash(String),
     Error(String),
     Length(usize),
 }
@@ -19,6 +20,8 @@ impl Message {
             "Exit" => Self::Exit,
             "Ok" => Self::Ok,
 
+            str if str.starts_with("Hash ") =>
+                Self::Hash(str.trim_start_matches("Hash ").to_string()),
             str if str.starts_with("Error ") =>
                 Self::Error(str.trim_start_matches("Error ").to_string()),
             str if str.starts_with("Length ") => {
@@ -31,18 +34,24 @@ impl Message {
             _ => Self::Error(String::from("Invalid Message")),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        match self {
-            Self::Exit => String::from("Exit"),
-            Self::Ok => String::from("Ok"),
-            Self::Error(str) => String::from("Error ") + &str,
-            Self::Length(len) => String::from("Length ") + &len.to_string(),
-        }
+impl std::fmt::Display for Message {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}",
+            match self {
+                Self::Exit => String::from("Exit"),
+                Self::Ok => String::from("Ok"),
+                Self::Hash(str) => String::from("Hash ") + &str,
+                Self::Error(str) => String::from("Error ") + &str,
+                Self::Length(len) => String::from("Length ") + &len.to_string(),
+            }
+        ))
     }
 }
 
-pub fn host_connection(user_info: &UserInfo) {
+pub fn host_connection(user_info: &UserInfo) -> std::io::Result<()> {
     // TODO sync data with another instance
     // This 'sync' command will be the host and display an ip
     // where a 'sync x.x.x.x' command will connect to
@@ -60,37 +69,24 @@ pub fn host_connection(user_info: &UserInfo) {
     if let Ok(ip) = local_ip() {
         println!("ip address is: {:?}", ip);
         let socket = format!("{:?}", ip) + ":51104";
-        if let Ok(tcp_listener) = TcpListener::bind(&socket) {
-            for stream in tcp_listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        host(stream, &user_info).unwrap();
-                        return
-                    },
-                    Err(e) => {
-                        println!("Error: {}", e);
-                        return
-                    },
-                }
-            }
-        } else {
-            println!("Failed to bind to socket, try again later");
+        let tcp_listener = TcpListener::bind(&socket)?;
+        match tcp_listener.accept() {
+            Ok((stream, _)) => host(stream, &user_info)?,
+            Err(e) => println!("Error: {}", e),
         }
+        Ok(())
     } else {
-        println!("Couldn't get local ip address. Check network connection");
+        Err(std::io::Error::other("Couldn't get ip address. Check network connection"))
     }
 }
 
-pub fn client_connection(user_info: &UserInfo, ip: &str) {
+pub fn client_connection(user_info: &UserInfo, ip: &str) -> std::io::Result<()> {
     if !valid_ip(&ip) {
-        println!("Invalid ip entered");
-        return
+        return Err(std::io::Error::other("Invalid ip entered"));
     }
-    if let Ok(stream) = TcpStream::connect(String::from(ip) + ":51104") {
-        client(stream, &user_info).unwrap();
-    } else {
-        println!("Failed to connect to: {}", ip);
-    }
+    let stream = TcpStream::connect(String::from(ip) + ":51104")?;
+    client(stream, &user_info).unwrap();
+    Ok(())
 }
 
 /// Returns true if the given ip address is in the form x.x.x.x
@@ -110,12 +106,19 @@ fn valid_ip(ip: &str) -> bool {
 /// The process of hosting a sync
 pub fn host(mut stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     println!("Connection from: {}", stream.peer_addr().unwrap());
+    if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
+        if user_hash != user_info.hash() {
+            write_stream(&stream, &Message::Error(String::from("Not matching user")))?;
+            return Err(std::io::Error::other("Not matching user"));
+        }
+        println!("{}", user_hash);
+    }
     Ok(())
 }
 
 /// The process of a sync client
 pub fn client(mut stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
-    stream.write(user_info.hash().as_bytes())?;
+    write_stream(&stream, &Message::Hash(user_info.hash()))?;
     Ok(())
 }
 

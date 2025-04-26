@@ -116,8 +116,16 @@ fn main() {
                     }
                 }
             },
-            ["sync"] => connect::host_connection(&user_info),
-            ["sync", ip] => connect::client_connection(&user_info, ip),
+            ["sync"] => {
+                if let Err(e) = connect::host_connection(&user_info) {
+                    println!("{}", e);
+                }
+            },
+            ["sync", ip] => {
+                if let Err(e) = connect::client_connection(&user_info, ip) {
+                    println!("{}", e);
+                }
+            },
             ["help"] => {
                 println!();
                 println!("Available Commands:");
