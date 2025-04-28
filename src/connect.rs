@@ -1,9 +1,14 @@
-use crate::user_info::UserInfo;
+use crate::{
+    user_info::UserInfo,
+    entry::Entry,
+    FromString,
+};
 use std::{
     io::prelude::*,
     net::{TcpStream, TcpListener},
 };
 use local_ip_address::local_ip;
+use chrono::{Utc, DateTime};
 
 pub enum Message {
     Exit,
@@ -11,6 +16,8 @@ pub enum Message {
     Hash(String),
     Error(String),
     Length(usize),
+    Header((String, DateTime<Utc>)),
+    Entry(Entry),
 }
 
 impl Message {
@@ -30,6 +37,19 @@ impl Message {
                     .expect("Length doesn't contain a number");
                 Self::Length(length)
             },
+            str if str.starts_with("Header ") => {
+                let mut split = str.trim_start_matches("Header ").split("\n\n");
+                let message = split.next().expect("Failed to split");
+                let timestamp = split.next().expect("Failed to split");
+                Self::Header((
+                        message.to_string(),
+                        timestamp.parse().expect("Failed to parse DateTime")
+                        )
+                    )
+            },
+            str if str.starts_with("Entry ") => {
+                Self::Entry(Entry::from_string(str.trim_start_matches("Entry ")))
+            },
 
             _ => Self::Error(String::from("Invalid Message")),
         }
@@ -46,6 +66,10 @@ impl std::fmt::Display for Message {
                 Self::Hash(str) => String::from("Hash ") + &str,
                 Self::Error(str) => String::from("Error ") + &str,
                 Self::Length(len) => String::from("Length ") + &len.to_string(),
+                Self::Header((name, date)) =>
+                    String::from("Header ") + &name + "\n" + &format!("{:?}", date),
+                Self::Entry(entry) => String::from("Entry ") + &entry.to_string(),
+                //_ => todo!(),
             }
         ))
     }
@@ -104,7 +128,7 @@ fn valid_ip(ip: &str) -> bool {
 }
 
 /// The process of hosting a sync
-pub fn host(mut stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
+pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     println!("Connection from: {}", stream.peer_addr().unwrap());
     if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
         if user_hash != user_info.hash() {
@@ -117,7 +141,7 @@ pub fn host(mut stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> 
 }
 
 /// The process of a sync client
-pub fn client(mut stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
+pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
     Ok(())
 }
