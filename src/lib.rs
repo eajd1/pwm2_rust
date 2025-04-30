@@ -1,4 +1,8 @@
-use crate::smsg::SMsg;
+use crate::{
+    smsg::SMsg,
+    user_info::UserInfo,
+    entry_file::EntryFile,
+};
 use std::{
     io::{stdin, stdout, Write},
     time::Instant,
@@ -136,4 +140,17 @@ pub fn encrypt_message_with_password(message: String, password: String) -> Strin
 
     // Output
     msg.to_string()
+}
+
+/// Returns the [EntryFile] of the given name, if it exists
+pub fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
+    let mut name = SMsg::new::<String>(&String::from(name));
+    name.encrypt(&user_info.hash());
+    match load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
+        Ok(file) => Some(EntryFile::from_string(&file)),
+        Err(e) => {
+            eprintln!("{}", e);
+            None
+        },
+    }
 }

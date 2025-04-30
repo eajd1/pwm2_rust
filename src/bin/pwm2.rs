@@ -242,19 +242,6 @@ fn random_special_char() -> char {
     }
 }
 
-/// Returns the [EntryFile] of the given name, if it exists
-fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
-    let mut name = SMsg::new::<String>(&String::from(name));
-    name.encrypt(&user_info.hash());
-    match load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
-        Ok(file) => Some(EntryFile::from_string(&file)),
-        Err(e) => {
-            eprintln!("{}", e);
-            None
-        },
-    }
-}
-
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
         println!("\n{}", open_entry(&entry_file, index));

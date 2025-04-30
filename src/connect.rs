@@ -2,10 +2,13 @@ use crate::{
     user_info::UserInfo,
     entry::Entry,
     FromString,
+    smsg::SMsg,
+    get_file,
 };
 use std::{
     io::prelude::*,
     net::{TcpStream, TcpListener},
+    fs,
 };
 use local_ip_address::local_ip;
 use chrono::{Utc, DateTime};
@@ -15,6 +18,7 @@ pub enum Message {
     Ok,
     Hash(String),
     Error(String),
+    Invalid,
     Length(usize),
     Header((String, DateTime<Utc>)),
     Entry(Entry),
@@ -26,6 +30,7 @@ impl Message {
         match string {
             "Exit" => Self::Exit,
             "Ok" => Self::Ok,
+            "Invalid" => Self::Invalid,
 
             str if str.starts_with("Hash ") =>
                 Self::Hash(str.trim_start_matches("Hash ").to_string()),
@@ -65,6 +70,7 @@ impl std::fmt::Display for Message {
                 Self::Ok => String::from("Ok"),
                 Self::Hash(str) => String::from("Hash ") + &str,
                 Self::Error(str) => String::from("Error ") + &str,
+                Self::Invalid => String::from("Invalid"),
                 Self::Length(len) => String::from("Length ") + &len.to_string(),
                 Self::Header((name, date)) =>
                     String::from("Header ") + &name + "\n" + &format!("{:?}", date),
@@ -127,15 +133,32 @@ fn valid_ip(ip: &str) -> bool {
     return false;
 }
 
+// Protocol:
+// Client: Hash -> Host: Ok
+// Client: Header
+// Repeat above until all headers sent
+// Client: Ok
+// Repeat below until files sent
+//     Host: Request File
+//     Client: File Length, File
+// Host: Ok -> Client: Ok
+// Host: File Length, File -> Client: Ok
+// Repeat until files sent
+// Host: Ok -> Client: Exit
 /// The process of hosting a sync
 pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     println!("Connection from: {}", stream.peer_addr().unwrap());
+    // Check Hash
     if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
-        if user_hash != user_info.hash() {
+        if user_hash == user_info.hash() {
+            write_stream(&stream, &Message::Ok)?;
+        } else {
             write_stream(&stream, &Message::Error(String::from("Not matching user")))?;
             return Err(std::io::Error::other("Not matching user"));
         }
         println!("{}", user_hash);
+    } else {
+        write_stream(&stream, &Message::Invalid)?;
     }
     Ok(())
 }
@@ -143,6 +166,40 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
 /// The process of a sync client
 pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
+    // Transmit how many files are available
+    if let Message::Ok = read_stream(&stream, 0)? {
+        let count = fs::read_dir(user_info.user_path())
+        .expect("Unable to read user directory")
+        .count();
+        write_stream(&stream, &Message::Length(count))?;
+    } else {
+        write_stream(&stream, &Message::Invalid)?;
+        return Err(std::io::Error::other("Communication Error"));
+    }
+    // Transmit the name and date of all the files
+    if let Message::Ok = read_stream(&stream, 0)? {
+        for file in fs::read_dir(user_info.user_path())
+            .expect("Unable to read user directory") {
+            if let Ok(file) = file {
+                if let Some(name) = file.file_name().to_str() {
+                    // Need to decrypt name using user_info.hash()
+                    let mut name = SMsg::from_hex_string_one_line(name);
+                    name.decrypt(&user_info.hash());
+                    let name = name.to_utf8_string();
+                    if let Some(entry_file) = get_file(&user_info, &name) {
+                        let timestamp = entry_file.get(0)
+                            .expect("No Entry found in EntryFile")
+                            .get_timestamp().to_owned();
+                        write_stream(&stream, &Message::Header((name, timestamp)))?;
+                    }
+                }
+            }
+        }
+        write_stream(&stream, &Message::Ok)?;
+    } else {
+        write_stream(&stream, &Message::Invalid)?;
+        return Err(std::io::Error::other("Communication Error"));
+    }
     Ok(())
 }
 
