@@ -43,7 +43,7 @@ impl Message {
                 Self::Length(length)
             },
             str if str.starts_with("Header ") => {
-                let mut split = str.trim_start_matches("Header ").split("\n\n");
+                let mut split = str.trim_start_matches("Header ").split("\n");
                 let message = split.next().expect("Failed to split");
                 let timestamp = split.next().expect("Failed to split");
                 Self::Header((
@@ -135,15 +135,20 @@ fn valid_ip(ip: &str) -> bool {
 
 // Protocol:
 // Client: Hash -> Host: Ok
-// Client: Header
+// Client: Header -> Host: Ok
 // Repeat above until all headers sent
 // Client: Ok
 // Repeat below until files sent
 //     Host: Request File
-//     Client: File Length, File
+//     Client: File Length
+//     Host: Ok
+//     Client: File
 // Host: Ok -> Client: Ok
-// Host: File Length, File -> Client: Ok
-// Repeat until files sent
+// Repeat below until files sent
+//     Host: File Length
+//     Client: Ok
+//     Host: File
+//     Client: Ok
 // Host: Ok -> Client: Exit
 /// The process of hosting a sync
 pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
@@ -156,26 +161,34 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             write_stream(&stream, &Message::Error(String::from("Not matching user")))?;
             return Err(std::io::Error::other("Not matching user"));
         }
-        println!("{}", user_hash);
     } else {
         write_stream(&stream, &Message::Invalid)?;
     }
+    // Receive file headers
+    let mut headers = vec![];
+    loop {
+        match read_stream(&stream, 32)? {
+            Message::Ok => break,
+            Message::Header((name, date)) => {
+                headers.push((name, date));
+                write_stream(&stream, &Message::Ok)?;
+            },
+            _ => {
+                write_stream(&stream, &Message::Invalid)?;
+                return Err(std::io::Error::other("Communication Error"));
+            },
+        }
+    }
+    // Calculate required files for host
+    // Calculate required files for client
+    // Request files
+    // Send files
     Ok(())
 }
 
 /// The process of a sync client
 pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
-    // Transmit how many files are available
-    if let Message::Ok = read_stream(&stream, 0)? {
-        let count = fs::read_dir(user_info.user_path())
-        .expect("Unable to read user directory")
-        .count();
-        write_stream(&stream, &Message::Length(count))?;
-    } else {
-        write_stream(&stream, &Message::Invalid)?;
-        return Err(std::io::Error::other("Communication Error"));
-    }
     // Transmit the name and date of all the files
     if let Message::Ok = read_stream(&stream, 0)? {
         for file in fs::read_dir(user_info.user_path())
@@ -193,6 +206,13 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                         write_stream(&stream, &Message::Header((name, timestamp)))?;
                     }
                 }
+            }
+            match read_stream(&stream, 0)? {
+                Message::Ok => (),
+                _ => {
+                    write_stream(&stream, &Message::Invalid)?;
+                    return Err(std::io::Error::other("Communication Error"));
+                },
             }
         }
         write_stream(&stream, &Message::Ok)?;
