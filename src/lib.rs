@@ -148,25 +148,13 @@ pub fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
     name.encrypt(&user_info.hash());
     match load(&user_info.user_path().join(&name.to_hex_string_one_line())) {
         Ok(file) => Some(EntryFile::from_string(&file)),
-        Err(e) => {
-            eprintln!("{}", e);
+        Err(_) => {
             None
         },
     }
 }
 
 /// Saves the given [EntryFile] to the disk
-pub fn save_file(user_info: &UserInfo, entry_file: &EntryFile) {
-    if let Err(e) = save(&entry_file.get_path(&user_info), &entry_file.to_string()) {
-        eprintln!("{}", e);
-    } else {
-        println!("File saved successfully");
-        clear();
-    }
-}
-
-/// Waits for the user to press enter then clears the screen
-pub fn clear() {
-    get_input("Press enter to continue: ");
-    clearscreen::clear().expect("Failed to clear screen");
+pub fn save_file(user_info: &UserInfo, entry_file: &EntryFile) -> std::io::Result<()> {
+    save(&entry_file.get_path(&user_info), &entry_file.to_string())
 }

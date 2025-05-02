@@ -167,10 +167,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 client_headers.push((name, date));
                 write_stream(&stream, &Message::Ok)?;
             },
-            _ => {
-                write_stream(&stream, &Message::Invalid)?;
-                return Err(std::io::Error::other("Communication Error"));
-            },
+            _ => return communication_error(&stream),
         }
     }
     // Calculate required files for host
@@ -230,18 +227,20 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             if let Message::Entry(entry) = read_stream(&stream, len)? {
                 if let Some(mut entry_file) = get_file(&user_info, &name) {
                     entry_file.add(entry);
-                    save_file(&user_info, &entry_file);
+                    if let Err(e) = save_file(&user_info, &entry_file) {
+                        eprintln!("{}", e);
+                    }
                 } else {
                     let entry_file = EntryFile::new(&user_info, &name, entry);
-                    save_file(&user_info, &entry_file);
+                    if let Err(e) = save_file(&user_info, &entry_file) {
+                        eprintln!("{}", e);
+                    }
                 }
             } else {
-                write_stream(&stream, &Message::Invalid)?;
-                return Err(std::io::Error::other("Communication Error"));
+                return communication_error(&stream);
             }
         } else {
-            write_stream(&stream, &Message::Invalid)?;
-            return Err(std::io::Error::other("Communication Error"));
+            return communication_error(&stream);
         }
     }
     write_stream(&stream, &Message::Ok)?;
@@ -261,25 +260,19 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                         // Send Entry
                         write_stream(&stream, &Message::Entry(entry))?;
                     } else {
-                        write_stream(&stream, &Message::Invalid)?;
-                        return Err(std::io::Error::other("Communication Error"));
+                        return communication_error(&stream);
                     }
                 } else {
-                    write_stream(&stream, &Message::Invalid)?;
-                    return Err(std::io::Error::other("Communication Error"));
+                    return communication_error(&stream);
                 }
             }
             match read_stream(&stream, 0)? {
                 Message::Ok => (),
-                _ => {
-                    write_stream(&stream, &Message::Invalid)?;
-                    return Err(std::io::Error::other("Communication Error"));
-                },
+                _ => return communication_error(&stream),
             }
         }
     } else {
-        write_stream(&stream, &Message::Invalid)?;
-        return Err(std::io::Error::other("Communication Error"));
+        return communication_error(&stream);
     }
     write_stream(&stream, &Message::Ok)?;
     Ok(())
@@ -295,16 +288,12 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             write_stream(&stream, &Message::Header(header))?;
             match read_stream(&stream, 0)? {
                 Message::Ok => (),
-                _ => {
-                    write_stream(&stream, &Message::Invalid)?;
-                    return Err(std::io::Error::other("Communication Error"));
-                },
+                _ => return communication_error(&stream),
             }
         }
         write_stream(&stream, &Message::Ok)?;
     } else {
-        write_stream(&stream, &Message::Invalid)?;
-        return Err(std::io::Error::other("Communication Error"));
+        return communication_error(&stream);
     }
     // Host requesting file
     loop {
@@ -319,8 +308,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                         // Send Entry
                         write_stream(&stream, &Message::Entry(entry))?;
                     } else {
-                        write_stream(&stream, &Message::Invalid)?;
-                        return Err(std::io::Error::other("Communication Error"));
+                        return communication_error(&stream);
                     }
                 }
             },
@@ -328,10 +316,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 write_stream(&stream, &Message::Ok)?;
                 break;
             },
-            _ => {
-                write_stream(&stream, &Message::Invalid)?;
-                return Err(std::io::Error::other("Communication Error"));
-            },
+            _ => return communication_error(&stream),
         }
     }
     // Host sending files
@@ -343,15 +328,18 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     if let Message::Entry(entry) = read_stream(&stream, len)? {
                         if let Some(mut entry_file) = get_file(&user_info, &name) {
                             entry_file.add(entry);
-                            save_file(&user_info, &entry_file);
+                            if let Err(e) = save_file(&user_info, &entry_file) {
+                                eprintln!("{}", e);
+                            }
                         } else {
                             let entry_file = EntryFile::new(&user_info, &name, entry);
-                            save_file(&user_info, &entry_file);
+                            if let Err(e) = save_file(&user_info, &entry_file) {
+                                eprintln!("{}", e);
+                            }
                         }
                         write_stream(&stream, &Message::Ok)?;
                     } else {
-                        write_stream(&stream, &Message::Invalid)?;
-                        return Err(std::io::Error::other("Communication Error"));
+                        return communication_error(&stream);
                     }
                 }
             },
@@ -359,10 +347,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 write_stream(&stream, &Message::Exit)?;
                 break;
             },
-            _ => {
-                write_stream(&stream, &Message::Invalid)?;
-                return Err(std::io::Error::other("Communication Error"));
-            },
+            _ => return communication_error(&stream),
         }
     }
     Ok(())
@@ -418,4 +403,9 @@ fn get_headers(user_info: &UserInfo) -> Vec<(String, DateTime<Utc>)> {
         }
     }
     return headers;
+}
+
+fn communication_error(stream: &TcpStream) -> std::io::Result<()> {
+    let _ = write_stream(&stream, &Message::Invalid);
+    Err(std::io::Error::other("Communication Error"))
 }

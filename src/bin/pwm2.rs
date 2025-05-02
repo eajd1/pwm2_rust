@@ -56,10 +56,10 @@ fn main() {
                 let entry = new_entry();
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     entry_file.add(entry);
-                    save_file(&user_info, &entry_file);
+                    show_save(save_file(&user_info, &entry_file));
                 } else {
                     let entry_file = EntryFile::new(&user_info, name, entry);
-                    save_file(&user_info, &entry_file);
+                    show_save(save_file(&user_info, &entry_file));
                 }
             },
             ["new", name, length] if !length.parse::<usize>().is_err() => {
@@ -67,10 +67,10 @@ fn main() {
                 let entry = random_entry(length);
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     entry_file.add(entry);
-                    save_file(&user_info, &entry_file);
+                    show_save(save_file(&user_info, &entry_file));
                 } else {
                     let entry_file = EntryFile::new(&user_info, name, entry);
-                    save_file(&user_info, &entry_file);
+                    show_save(save_file(&user_info, &entry_file));
                 }
             },
             ["open", name] => open(&user_info, name, 0),
@@ -260,7 +260,7 @@ fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
     println!("{}", &latest);
     let entry = new_entry();
     entry_file.add(entry);
-    save_file(&user_info, &entry_file);
+    show_save(save_file(&user_info, &entry_file));
 }
 
 fn revert(user_info: &UserInfo, name: &str, index: usize) {
@@ -284,7 +284,7 @@ fn revert(user_info: &UserInfo, name: &str, index: usize) {
                         return ();
                     }
                 }
-                save_file(&user_info, &entry_file);
+                show_save(save_file(&user_info, &entry_file));
             },
             _ => (),
         }
@@ -307,4 +307,19 @@ fn list_files(user_info: &UserInfo) {
         }
     }
     println!("{}", files);
+}
+
+fn show_save(result: std::io::Result<()>) {
+    if let Err(e) = result {
+        eprintln!("{}", e);
+    } else {
+        println!("File saved successfully");
+        clear();
+    }
+}
+
+/// Waits for the user to press enter then clears the screen
+fn clear() {
+    get_input("Press enter to continue: ");
+    clearscreen::clear().expect("Failed to clear screen");
 }
