@@ -154,3 +154,19 @@ pub fn get_file(user_info: &UserInfo, name: &str) -> Option<EntryFile> {
         },
     }
 }
+
+/// Saves the given [EntryFile] to the disk
+pub fn save_file(user_info: &UserInfo, entry_file: &EntryFile) {
+    if let Err(e) = save(&entry_file.get_path(&user_info), &entry_file.to_string()) {
+        eprintln!("{}", e);
+    } else {
+        println!("File saved successfully");
+        clear();
+    }
+}
+
+/// Waits for the user to press enter then clears the screen
+pub fn clear() {
+    get_input("Press enter to continue: ");
+    clearscreen::clear().expect("Failed to clear screen");
+}

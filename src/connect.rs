@@ -1,9 +1,11 @@
 use crate::{
     user_info::UserInfo,
     entry::Entry,
+    entry_file::EntryFile,
     FromString,
     smsg::SMsg,
     get_file,
+    save_file,
 };
 use std::{
     io::prelude::*,
@@ -21,6 +23,7 @@ pub enum Message {
     Invalid,
     Length(usize),
     Header((String, DateTime<Utc>)),
+    Name(String),
     Entry(Entry),
 }
 
@@ -52,6 +55,8 @@ impl Message {
                         )
                     )
             },
+            str if str.starts_with("Name ") => 
+                Self::Name(str.trim_start_matches("Name ").to_string()),
             str if str.starts_with("Entry ") => {
                 Self::Entry(Entry::from_string(str.trim_start_matches("Entry ")))
             },
@@ -74,6 +79,7 @@ impl std::fmt::Display for Message {
                 Self::Length(len) => String::from("Length ") + &len.to_string(),
                 Self::Header((name, date)) =>
                     String::from("Header ") + &name + "\n" + &format!("{:?}", date),
+                Self::Name(str) => String::from("Name ") + &str,
                 Self::Entry(entry) => String::from("Entry ") + &entry.to_string(),
                 //_ => todo!(),
             }
@@ -82,20 +88,6 @@ impl std::fmt::Display for Message {
 }
 
 pub fn host_connection(user_info: &UserInfo) -> std::io::Result<()> {
-    // TODO sync data with another instance
-    // This 'sync' command will be the host and display an ip
-    // where a 'sync x.x.x.x' command will connect to
-    // and become the client.
-    //
-    // Communication outline:
-    // The client will send the user hash to the host and if it isnt
-    // the same as the one on the host the connection will end.
-    // The client will send the dates of the latest entries of
-    // all the files for the current user it has to the host.
-    // The host will work out which files it needs and which files
-    // the client needs.
-    // The host will ask for the files it needs.
-    // The host will send the files the clients needs.
     if let Ok(ip) = local_ip() {
         println!("ip address is: {:?}", ip);
         let socket = format!("{:?}", ip) + ":51104";
@@ -145,6 +137,8 @@ fn valid_ip(ip: &str) -> bool {
 //     Client: File
 // Host: Ok -> Client: Ok
 // Repeat below until files sent
+//     Host: File Name
+//     Client: Ok
 //     Host: File Length
 //     Client: Ok
 //     Host: File
@@ -165,12 +159,12 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         write_stream(&stream, &Message::Invalid)?;
     }
     // Receive file headers
-    let mut headers = vec![];
+    let mut client_headers = vec![];
     loop {
         match read_stream(&stream, 32)? {
             Message::Ok => break,
             Message::Header((name, date)) => {
-                headers.push((name, date));
+                client_headers.push((name, date));
                 write_stream(&stream, &Message::Ok)?;
             },
             _ => {
@@ -180,9 +174,114 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         }
     }
     // Calculate required files for host
+    let host_headers = get_headers(&user_info);
+    let host_required: Vec<(String, DateTime<Utc>)> = client_headers
+        .clone()
+        .into_iter()
+        .filter(|client| -> bool {
+            let (c_name, c_date) = client;
+            let mut found = false;
+            for header in &host_headers {
+                let (name, date) = header;
+                if name == c_name {
+                    found = true;
+                    // Client has a more updated file than Host has
+                    if date < c_date {
+                        return true;
+                    }
+                }
+            }
+            // Client has a file the Host doesn't
+            if !found {
+                return true;
+            }
+            false
+        })
+        .collect();
     // Calculate required files for client
+    let client_required: Vec<(String, DateTime<Utc>)> = host_headers
+        .into_iter()
+        .filter(|host| -> bool {
+            let (h_name, h_date) = host;
+            let mut found = false;
+            for header in &client_headers {
+                let (name, date) = header;
+                if name == h_name {
+                    found = true;
+                    // Host has a more updated file than Client has
+                    if date < h_date {
+                        return true;
+                    }
+                }
+            }
+            // Host has a file the Client doesn't
+            if !found {
+                return true;
+            }
+            false
+        })
+        .collect();
     // Request files
+    for header in host_required {
+        let (name, _) = header;
+        write_stream(&stream, &Message::Name(name.clone()))?;
+        if let Message::Length(len) = read_stream(&stream, 16)? {
+            write_stream(&stream, &Message::Ok)?;
+            if let Message::Entry(entry) = read_stream(&stream, len)? {
+                if let Some(mut entry_file) = get_file(&user_info, &name) {
+                    entry_file.add(entry);
+                    save_file(&user_info, &entry_file);
+                } else {
+                    let entry_file = EntryFile::new(&user_info, &name, entry);
+                    save_file(&user_info, &entry_file);
+                }
+            } else {
+                write_stream(&stream, &Message::Invalid)?;
+                return Err(std::io::Error::other("Communication Error"));
+            }
+        } else {
+            write_stream(&stream, &Message::Invalid)?;
+            return Err(std::io::Error::other("Communication Error"));
+        }
+    }
+    write_stream(&stream, &Message::Ok)?;
     // Send files
+    if let Message::Ok = read_stream(&stream, 0)? {
+        for header in client_required {
+            let (name, _) = header;
+            if let Some(file) = get_file(&user_info, &name) {
+                let entry = file.get(0).expect("No entry in file");
+                let entry_string = entry.to_string();
+                // Send Name
+                write_stream(&stream, &Message::Name(name))?;
+                if let Message::Ok = read_stream(&stream, 0)? {
+                    // Send Length
+                    write_stream(&stream, &Message::Length(entry_string.len()))?;
+                    if let Message::Ok = read_stream(&stream, 0)? {
+                        // Send Entry
+                        write_stream(&stream, &Message::Entry(entry))?;
+                    } else {
+                        write_stream(&stream, &Message::Invalid)?;
+                        return Err(std::io::Error::other("Communication Error"));
+                    }
+                } else {
+                    write_stream(&stream, &Message::Invalid)?;
+                    return Err(std::io::Error::other("Communication Error"));
+                }
+            }
+            match read_stream(&stream, 0)? {
+                Message::Ok => (),
+                _ => {
+                    write_stream(&stream, &Message::Invalid)?;
+                    return Err(std::io::Error::other("Communication Error"));
+                },
+            }
+        }
+    } else {
+        write_stream(&stream, &Message::Invalid)?;
+        return Err(std::io::Error::other("Communication Error"));
+    }
+    write_stream(&stream, &Message::Ok)?;
     Ok(())
 }
 
@@ -191,22 +290,9 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
     // Transmit the name and date of all the files
     if let Message::Ok = read_stream(&stream, 0)? {
-        for file in fs::read_dir(user_info.user_path())
-            .expect("Unable to read user directory") {
-            if let Ok(file) = file {
-                if let Some(name) = file.file_name().to_str() {
-                    // Need to decrypt name using user_info.hash()
-                    let mut name = SMsg::from_hex_string_one_line(name);
-                    name.decrypt(&user_info.hash());
-                    let name = name.to_utf8_string();
-                    if let Some(entry_file) = get_file(&user_info, &name) {
-                        let timestamp = entry_file.get(0)
-                            .expect("No Entry found in EntryFile")
-                            .get_timestamp().to_owned();
-                        write_stream(&stream, &Message::Header((name, timestamp)))?;
-                    }
-                }
-            }
+        let headers = get_headers(&user_info);
+        for header in headers {
+            write_stream(&stream, &Message::Header(header))?;
             match read_stream(&stream, 0)? {
                 Message::Ok => (),
                 _ => {
@@ -219,6 +305,65 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     } else {
         write_stream(&stream, &Message::Invalid)?;
         return Err(std::io::Error::other("Communication Error"));
+    }
+    // Host requesting file
+    loop {
+        match read_stream(&stream, 0)? {
+            Message::Name(name) => {
+                if let Some(file) = get_file(&user_info, &name) {
+                    let entry = file.get(0).expect("No entry in file");
+                    let entry_string = entry.to_string();
+                    // Send Length
+                    write_stream(&stream, &Message::Length(entry_string.len()))?;
+                    if let Message::Ok = read_stream(&stream, 0)? {
+                        // Send Entry
+                        write_stream(&stream, &Message::Entry(entry))?;
+                    } else {
+                        write_stream(&stream, &Message::Invalid)?;
+                        return Err(std::io::Error::other("Communication Error"));
+                    }
+                }
+            },
+            Message::Ok => {
+                write_stream(&stream, &Message::Ok)?;
+                break;
+            },
+            _ => {
+                write_stream(&stream, &Message::Invalid)?;
+                return Err(std::io::Error::other("Communication Error"));
+            },
+        }
+    }
+    // Host sending files
+    loop {
+        match read_stream(&stream, 0)? {
+            Message::Name(name) => {
+                if let Message::Length(len) = read_stream(&stream, 0)? {
+                    write_stream(&stream, &Message::Ok)?;
+                    if let Message::Entry(entry) = read_stream(&stream, len)? {
+                        if let Some(mut entry_file) = get_file(&user_info, &name) {
+                            entry_file.add(entry);
+                            save_file(&user_info, &entry_file);
+                        } else {
+                            let entry_file = EntryFile::new(&user_info, &name, entry);
+                            save_file(&user_info, &entry_file);
+                        }
+                        write_stream(&stream, &Message::Ok)?;
+                    } else {
+                        write_stream(&stream, &Message::Invalid)?;
+                        return Err(std::io::Error::other("Communication Error"));
+                    }
+                }
+            },
+            Message::Ok => {
+                write_stream(&stream, &Message::Exit)?;
+                break;
+            },
+            _ => {
+                write_stream(&stream, &Message::Invalid)?;
+                return Err(std::io::Error::other("Communication Error"));
+            },
+        }
     }
     Ok(())
 }
@@ -239,7 +384,7 @@ fn convert_buffer(buf: &[u8]) -> String {
 /// Calls [read] on the given [TcpStream] and returns Ok(Message)
 ///
 /// If the read was unsuccessful returns an [Err]
-pub fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
+fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
         Ok(_) => Ok(Message::new(&convert_buffer(&buf))),
@@ -248,7 +393,29 @@ pub fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Messa
 }
 
 /// Calls [write] on the given [TcpStream] and returns the [Result]
-pub fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
+fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
     stream.write(message.to_string().as_bytes())?;
     Ok(())
+}
+
+fn get_headers(user_info: &UserInfo) -> Vec<(String, DateTime<Utc>)> {
+    let mut headers = vec![];
+    for file in fs::read_dir(user_info.user_path())
+        .expect("Unable to read user directory") {
+        if let Ok(file) = file {
+            if let Some(name) = file.file_name().to_str() {
+                // Need to decrypt name using user_info.hash()
+                let mut name = SMsg::from_hex_string_one_line(name);
+                name.decrypt(&user_info.hash());
+                let name = name.to_utf8_string();
+                if let Some(entry_file) = get_file(&user_info, &name) {
+                    let timestamp = entry_file.get(0)
+                        .expect("No Entry found in EntryFile")
+                        .get_timestamp().to_owned();
+                    headers.push((name, timestamp));
+                }
+            }
+        }
+    }
+    return headers;
 }

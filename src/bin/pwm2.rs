@@ -173,15 +173,6 @@ fn main() {
     }
 }
 
-fn save_file(user_info: &UserInfo, entry_file: &EntryFile) {
-    if let Err(e) = save(&entry_file.get_path(&user_info), &entry_file.to_string()) {
-        eprintln!("{}", e);
-    } else {
-        println!("File saved successfully");
-        clear();
-    }
-}
-
 fn new_entry() -> Entry {
     let mut message = SMsg::new::<String>(&get_input("Enter message: "));
     message.encrypt(&get_confirm_password());
@@ -316,10 +307,4 @@ fn list_files(user_info: &UserInfo) {
         }
     }
     println!("{}", files);
-}
-
-/// Waits for the user to press enter then clears the screen
-fn clear() {
-    get_input("Press enter to continue: ");
-    clearscreen::clear().expect("Failed to clear screen");
 }
