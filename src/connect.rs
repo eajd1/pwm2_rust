@@ -107,7 +107,7 @@ pub fn client_connection(user_info: &UserInfo, ip: &str) -> std::io::Result<()> 
         return Err(std::io::Error::other("Invalid ip entered"));
     }
     let stream = TcpStream::connect(String::from(ip) + ":51104")?;
-    client(stream, &user_info).unwrap();
+    client(stream, &user_info)?;
     Ok(())
 }
 
