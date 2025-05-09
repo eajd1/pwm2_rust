@@ -383,6 +383,7 @@ fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()
     Ok(())
 }
 
+/// Returns a Vec of the names and latest date for all the [EntryFile]s for the user
 fn get_headers(user_info: &UserInfo) -> Vec<(String, DateTime<Utc>)> {
     let mut headers = vec![];
     for file in fs::read_dir(user_info.user_path())
@@ -405,6 +406,7 @@ fn get_headers(user_info: &UserInfo) -> Vec<(String, DateTime<Utc>)> {
     return headers;
 }
 
+/// Writes Message::Invalid to the stream and returns Err
 fn communication_error(stream: &TcpStream) -> std::io::Result<()> {
     let _ = write_stream(&stream, &Message::Invalid);
     Err(std::io::Error::other("Communication Error"))
