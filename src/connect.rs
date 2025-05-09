@@ -170,54 +170,12 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             _ => return communication_error(&stream),
         }
     }
-    // Calculate required files for host
+
     let host_headers = get_headers(&user_info);
-    let host_required: Vec<(String, DateTime<Utc>)> = client_headers
-        .clone()
-        .into_iter()
-        .filter(|client| -> bool {
-            let (c_name, c_date) = client;
-            let mut found = false;
-            for header in &host_headers {
-                let (name, date) = header;
-                if name == c_name {
-                    found = true;
-                    // Client has a more updated file than Host has
-                    if date < c_date {
-                        return true;
-                    }
-                }
-            }
-            // Client has a file the Host doesn't
-            if !found {
-                return true;
-            }
-            false
-        })
-        .collect();
+    // Calculate required files for host
+    let host_required = get_diff(&client_headers, &host_headers);
     // Calculate required files for client
-    let client_required: Vec<(String, DateTime<Utc>)> = host_headers
-        .into_iter()
-        .filter(|host| -> bool {
-            let (h_name, h_date) = host;
-            let mut found = false;
-            for header in &client_headers {
-                let (name, date) = header;
-                if name == h_name {
-                    found = true;
-                    // Host has a more updated file than Client has
-                    if date < h_date {
-                        return true;
-                    }
-                }
-            }
-            // Host has a file the Client doesn't
-            if !found {
-                return true;
-            }
-            false
-        })
-        .collect();
+    let client_required = get_diff(&host_headers, &client_headers);
     // Request files
     for header in host_required {
         let (name, _) = header;
@@ -410,4 +368,31 @@ fn get_headers(user_info: &UserInfo) -> Vec<(String, DateTime<Utc>)> {
 fn communication_error(stream: &TcpStream) -> std::io::Result<()> {
     let _ = write_stream(&stream, &Message::Invalid);
     Err(std::io::Error::other("Communication Error"))
+}
+
+fn get_diff(a: &Vec<(String, DateTime<Utc>)>, b: &Vec<(String, DateTime<Utc>)>)
+    -> Vec<(String, DateTime<Utc>)> {
+    return a
+        .clone()
+        .into_iter()
+        .filter(|a_header| -> bool {
+            let (a_name, a_date) = a_header;
+            let mut found = false;
+            for b_header in b {
+                let (b_name, b_date) = b_header;
+                if b_name == a_name {
+                    found = true;
+                    // a has a more updated file than b has
+                    if b_date < a_date {
+                        return true;
+                    }
+                }
+            }
+            // a has a file the b doesn't
+            if !found {
+                return true;
+            }
+            false
+        })
+        .collect();
 }
