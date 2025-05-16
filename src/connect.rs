@@ -150,7 +150,6 @@ fn valid_ip(ip: &str) -> bool {
 // Host: Ok -> Client: Exit
 /// The process of hosting a sync
 pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
-    println!("Connection from: {}", stream.peer_addr().unwrap());
     // Check Hash
     if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
         if user_hash == user_info.hash() {
@@ -186,6 +185,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     for header in host_required {
         let (name, _) = header;
         // Request File
+        println!("Requesting file: {}", &name);
         write_stream(&stream, &Message::Request(name.clone()))?;
         // Receive Length
         if let Message::Length(len) = read_stream(&stream, 16)? {
@@ -222,6 +222,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 let entry = file.get(0).expect("No entry in file");
                 let entry_string = entry.to_string();
                 // Send Name
+                println!("Sending file: {}", &name);
                 write_stream(&stream, &Message::Name(name))?;
                 if let Message::Ok = read_stream(&stream, 0)? {
                     // Send Length
@@ -284,6 +285,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     write_stream(&stream, &Message::Length(entry_string.len()))?;
                     if let Message::Ok = read_stream(&stream, 0)? {
                         // Send Entry
+                        println!("Sending file: {}", &name);
                         write_stream(&stream, &Message::Entry(entry))?;
                         match read_stream(&stream, 0)? {
                             Message::Ok => write_stream(&stream, &Message::Ok)?,
@@ -294,9 +296,11 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     }
                 }
             },
+            // Host sending file
             Message::Name(name) => {
+                println!("Receiving file: {}", &name);
                 write_stream(&stream, &Message::Ok)?;
-                // Host sending files
+                // Host sending file length
                 if let Message::Length(len) = read_stream(&stream, 0)? {
                     write_stream(&stream, &Message::Ok)?;
                     if let Message::Entry(entry) = read_stream(&stream, len)? {
@@ -341,17 +345,13 @@ fn convert_buffer(buf: &[u8]) -> String {
 fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
-        Ok(_) => {
-            println!("read: {}", Message::new(&convert_buffer(&buf)));
-            Ok(Message::new(&convert_buffer(&buf)))
-        },
+        Ok(_) => Ok(Message::new(&convert_buffer(&buf))),
         Err(e) => Err(e),
     }
 }
 
 /// Calls [write] on the given [TcpStream] and returns the [Result]
 fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
-    println!("write: {}", &message);
     stream.write(message.to_string().as_bytes())?;
     Ok(())
 }
