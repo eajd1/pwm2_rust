@@ -88,7 +88,18 @@ fn main() {
                 let backup = backup.parse::<usize>().unwrap();
                 revert(&user_info, name, backup);
             },
-            ["list"] => list_files(&user_info),
+            ["list"] => {
+                for file in get_files(&user_info) {
+                    println!("{}", file);
+                }
+            },
+            ["list", search] => {
+                for file in get_files(&user_info) {
+                    if file.to_lowercase().contains(&search.to_lowercase()) {
+                        println!("{}", file);
+                    }
+                }
+            }
             ["date", name] => {
                 if let Some(entry_file) = get_file(&user_info, name) {
                     if let Some(latest) = entry_file.get(0) {
@@ -149,6 +160,8 @@ fn main() {
 - reverts the file to the specified backup entry");
                 println!("    list
 - Lists available files");
+                println!("    list <name>
+- Lists files matching or containing the specified name");
                 println!("    date <name>
 - Shows the date of the last entry in the file");
                 println!("    backups <name>
@@ -295,8 +308,8 @@ fn revert(user_info: &UserInfo, name: &str, index: usize) {
     }
 }
 
-fn list_files(user_info: &UserInfo) {
-    let mut files = String::new();
+fn get_files(user_info: &UserInfo) -> Vec<String> {
+    let mut files = vec![];
     for file in fs::read_dir(user_info.user_path())
         .expect("Unable to read user directory") {
         // If there is a file
@@ -306,11 +319,11 @@ fn list_files(user_info: &UserInfo) {
                 // Need to decrypt name using user_info.hash()
                 let mut name = SMsg::from_hex_string_one_line(name);
                 name.decrypt(&user_info.hash());
-                files += &(name.to_utf8_string() + "\n");
+                files.push(name.to_utf8_string() + "\n");
             }
         }
     }
-    println!("{}", files);
+    return files;
 }
 
 fn show_save(result: std::io::Result<()>) {
