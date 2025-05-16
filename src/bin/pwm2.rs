@@ -62,7 +62,7 @@ fn main() {
                     show_save(save_file(&user_info, &entry_file));
                 }
             },
-            ["new", name, length] if !length.parse::<usize>().is_err() => {
+            ["new", name, length] if length.parse::<usize>().is_ok() => {
                 let length = length.parse::<usize>().unwrap();
                 let entry = random_entry(length);
                 if let Some(mut entry_file) = get_file(&user_info, name) {
@@ -74,7 +74,7 @@ fn main() {
                 }
             },
             ["open", name] => open(&user_info, name, 0),
-            ["open", name, backup] if !backup.parse::<usize>().is_err() => {
+            ["open", name, backup] if backup.parse::<usize>().is_ok() => {
                 let backup = backup.parse::<usize>().unwrap();
                 open(&user_info, name, backup);
             },
@@ -84,7 +84,7 @@ fn main() {
                 }
             },
             ["revert", name] => revert(&user_info, name, 1),
-            ["revert", name, backup] if !backup.parse::<usize>().is_err() => {
+            ["revert", name, backup] if backup.parse::<usize>().is_ok() => {
                 let backup = backup.parse::<usize>().unwrap();
                 revert(&user_info, name, backup);
             },
