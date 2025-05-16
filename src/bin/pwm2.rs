@@ -21,7 +21,7 @@
 // [x] remove an entry
 // [x] add a way to generate random but memorable passwords
 // [x] new entries reusing names just add an entry
-// [_] syncing between computers
+// [x] syncing between computers
 
 use pwm2_rust::{
     *,
@@ -112,8 +112,12 @@ fn main() {
                         if let Err(e) = 
                             fs::remove_file(entry_file.get_path(&user_info)) {
                                 eprintln!("{}", e);
+                        } else {
+                            println!("Removed '{name}'");
                         }
                     }
+                } else {
+                    println!("'{}' does not exist", name);
                 }
             },
             ["sync"] => {

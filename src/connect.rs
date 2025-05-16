@@ -93,7 +93,7 @@ impl std::fmt::Display for Message {
 
 pub fn host_connection(user_info: &UserInfo) -> std::io::Result<()> {
     if let Ok(ip) = local_ip() {
-        println!("ip address is: {:?}", ip);
+        println!("ip address is '{:?}'", ip);
         let socket = format!("{:?}", ip) + ":51104";
         let tcp_listener = TcpListener::bind(&socket)?;
         match tcp_listener.accept() {
@@ -185,7 +185,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     for header in host_required {
         let (name, _) = header;
         // Request File
-        println!("Requesting file: {}", &name);
+        println!("Requesting file '{}'", &name);
         write_stream(&stream, &Message::Request(name.clone()))?;
         // Receive Length
         if let Message::Length(len) = read_stream(&stream, 16)? {
@@ -222,7 +222,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 let entry = file.get(0).expect("No entry in file");
                 let entry_string = entry.to_string();
                 // Send Name
-                println!("Sending file: {}", &name);
+                println!("Sending file '{}'", &name);
                 write_stream(&stream, &Message::Name(name))?;
                 if let Message::Ok = read_stream(&stream, 0)? {
                     // Send Length
@@ -285,7 +285,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     write_stream(&stream, &Message::Length(entry_string.len()))?;
                     if let Message::Ok = read_stream(&stream, 0)? {
                         // Send Entry
-                        println!("Sending file: {}", &name);
+                        println!("Sending file '{}'", &name);
                         write_stream(&stream, &Message::Entry(entry))?;
                         match read_stream(&stream, 0)? {
                             Message::Ok => write_stream(&stream, &Message::Ok)?,
@@ -298,7 +298,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             },
             // Host sending file
             Message::Name(name) => {
-                println!("Receiving file: {}", &name);
+                println!("Receiving file '{}'", &name);
                 write_stream(&stream, &Message::Ok)?;
                 // Host sending file length
                 if let Message::Length(len) = read_stream(&stream, 0)? {
