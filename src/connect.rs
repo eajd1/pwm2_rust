@@ -24,6 +24,7 @@ pub enum Message {
     Length(usize),
     Header((String, DateTime<Utc>)),
     Name(String),
+    Request(String),
     Entry(Entry),
 }
 
@@ -57,6 +58,8 @@ impl Message {
             },
             str if str.starts_with("Name ") => 
                 Self::Name(str.trim_start_matches("Name ").to_string()),
+            str if str.starts_with("Request ") =>
+                Self::Request(str.trim_start_matches("Request ").to_string()),
             str if str.starts_with("Entry ") => {
                 Self::Entry(Entry::from_string(str.trim_start_matches("Entry ")))
             },
@@ -80,6 +83,7 @@ impl std::fmt::Display for Message {
                 Self::Header((name, date)) =>
                     String::from("Header ") + &name + "\n" + &format!("{:?}", date),
                 Self::Name(str) => String::from("Name ") + &str,
+                Self::Request(str) => String::from("Request ") + &str,
                 Self::Entry(entry) => String::from("Entry ") + &entry.to_string(),
                 //_ => todo!(),
             }
@@ -158,6 +162,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     } else {
         write_stream(&stream, &Message::Invalid)?;
     }
+
     // Receive file headers
     let mut client_headers = vec![];
     loop {
@@ -176,24 +181,31 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     let host_required = get_diff(&client_headers, &host_headers);
     // Calculate required files for client
     let client_required = get_diff(&host_headers, &client_headers);
+
     // Request files
     for header in host_required {
         let (name, _) = header;
-        write_stream(&stream, &Message::Name(name.clone()))?;
+        // Request File
+        write_stream(&stream, &Message::Request(name.clone()))?;
+        // Receive Length
         if let Message::Length(len) = read_stream(&stream, 16)? {
             write_stream(&stream, &Message::Ok)?;
+            // Receive File
             if let Message::Entry(entry) = read_stream(&stream, len)? {
+                // If the file already exists, append the entry
                 if let Some(mut entry_file) = get_file(&user_info, &name) {
                     entry_file.add(entry);
                     if let Err(e) = save_file(&user_info, &entry_file) {
                         eprintln!("{}", e);
                     }
                 } else {
+                    // Otherwise create a new file
                     let entry_file = EntryFile::new(&user_info, &name, entry);
                     if let Err(e) = save_file(&user_info, &entry_file) {
                         eprintln!("{}", e);
                     }
                 }
+                write_stream(&stream, &Message::Ok)?;
             } else {
                 return communication_error(&stream);
             }
@@ -201,7 +213,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             return communication_error(&stream);
         }
     }
-    write_stream(&stream, &Message::Ok)?;
+
     // Send files
     if let Message::Ok = read_stream(&stream, 0)? {
         for header in client_required {
@@ -232,7 +244,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     } else {
         return communication_error(&stream);
     }
-    write_stream(&stream, &Message::Ok)?;
+    write_stream(&stream, &Message::Exit)?;
     Ok(())
 }
 
@@ -253,10 +265,18 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     } else {
         return communication_error(&stream);
     }
-    // Host requesting file
+
     loop {
-        match read_stream(&stream, 0)? {
-            Message::Name(name) => {
+        match read_stream(&stream, 32)? {
+            Message::Exit => return Ok(()),
+            Message::Ok => {
+                write_stream(&stream, &Message::Exit)?;
+                return Ok(());
+            },
+            Message::Error(e) => return Err(std::io::Error::other(e)),
+            Message::Invalid => return Err(std::io::Error::other("Invalid Communication")),
+            Message::Request(name) => {
+                // Host requesting file
                 if let Some(file) = get_file(&user_info, &name) {
                     let entry = file.get(0).expect("No entry in file");
                     let entry_string = entry.to_string();
@@ -265,22 +285,18 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     if let Message::Ok = read_stream(&stream, 0)? {
                         // Send Entry
                         write_stream(&stream, &Message::Entry(entry))?;
+                        match read_stream(&stream, 0)? {
+                            Message::Ok => write_stream(&stream, &Message::Ok)?,
+                            _ => return communication_error(&stream),
+                        }
                     } else {
                         return communication_error(&stream);
                     }
                 }
             },
-            Message::Ok => {
-                write_stream(&stream, &Message::Ok)?;
-                break;
-            },
-            _ => return communication_error(&stream),
-        }
-    }
-    // Host sending files
-    loop {
-        match read_stream(&stream, 0)? {
             Message::Name(name) => {
+                write_stream(&stream, &Message::Ok)?;
+                // Host sending files
                 if let Message::Length(len) = read_stream(&stream, 0)? {
                     write_stream(&stream, &Message::Ok)?;
                     if let Message::Entry(entry) = read_stream(&stream, len)? {
@@ -301,14 +317,9 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                     }
                 }
             },
-            Message::Ok => {
-                write_stream(&stream, &Message::Exit)?;
-                break;
-            },
             _ => return communication_error(&stream),
         }
     }
-    Ok(())
 }
 
 /// Converts a [u8] slice to a [String] without trailing nulls
@@ -330,13 +341,17 @@ fn convert_buffer(buf: &[u8]) -> String {
 fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
-        Ok(_) => Ok(Message::new(&convert_buffer(&buf))),
+        Ok(_) => {
+            println!("read: {}", Message::new(&convert_buffer(&buf)));
+            Ok(Message::new(&convert_buffer(&buf)))
+        },
         Err(e) => Err(e),
     }
 }
 
 /// Calls [write] on the given [TcpStream] and returns the [Result]
 fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
+    println!("write: {}", &message);
     stream.write(message.to_string().as_bytes())?;
     Ok(())
 }
