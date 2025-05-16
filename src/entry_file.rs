@@ -26,6 +26,13 @@ impl EntryFile {
         }
     }
 
+    /// Changes the name field to the given name encrypted by the given [UserInfo]
+    pub fn rename(&mut self, user_info: &UserInfo, name: &str) {
+        let mut name = SMsg::new::<String>(&String::from(name));
+        name.encrypt(&user_info.hash());
+        self.name = name;
+    }
+
     /// Adds a new [Entry] to the [EntryFile]
     pub fn add(&mut self, entry: Entry) {
         self.entries.push(entry);

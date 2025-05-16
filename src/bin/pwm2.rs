@@ -32,10 +32,7 @@ use pwm2_rust::{
     connect,
 };
 use std::fs;
-use rand::{
-    Rng,
-    distributions::Alphanumeric,
-};
+use rand::Rng;
 
 fn main() {
     if fs::metadata(&get_base_path()).is_err() {
@@ -115,6 +112,19 @@ fn main() {
                     }
                 }
             },
+            ["rename", name, new] => {
+                if let Some(mut entry_file) = get_file(&user_info, name) {
+                    if get_file(&user_info, new).is_some() {
+                        print!("Cannot rename to '{}', ", new);
+                        println!("a file with that name already exists");
+                        continue;
+                    }
+                    entry_file.rename(&user_info, new);
+                    show_save(save_file(&user_info, &entry_file));
+                } else {
+                    println!("'{}' doesn't exist", &name);
+                }
+            },
             ["remove", name] => {
                 if let Some(entry_file) = get_file(&user_info, name) {
                     if get_input(&format!(
@@ -166,6 +176,8 @@ fn main() {
 - Shows the date of the last entry in the file");
                 println!("    backups <name>
 - Lists the dates of all the backups in the file");
+                println!("    rename <name> <new_name>
+- Copies the first file into the second file");
                 println!("    remove <name>
 - Permanently deletes the specified file");
                 println!("    help
@@ -217,10 +229,10 @@ fn memorable_string(length: usize) -> String {
     let seperator = random_special_char();
     while string.len() < length {
         // Add short string
-        let random = rand::thread_rng().gen_range(4..=7);
+        let length = rand::thread_rng().gen_range(4..=7);
         let segment: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(random)
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(length)
             .map(char::from)
             .collect();
         string += &segment;
@@ -319,7 +331,7 @@ fn get_files(user_info: &UserInfo) -> Vec<String> {
                 // Need to decrypt name using user_info.hash()
                 let mut name = SMsg::from_hex_string_one_line(name);
                 name.decrypt(&user_info.hash());
-                files.push(name.to_utf8_string() + "\n");
+                files.push(name.to_utf8_string());
             }
         }
     }
