@@ -154,42 +154,24 @@ fn main() {
             ["help"] => {
                 println!();
                 println!("Available Commands:");
-                println!("    new <name>
-- creates a new file with the given name");
-                println!("    new <name> <length>
-- creates a new file with the given name and a random password of given length");
-                println!("    open <name>
-- opens the specified file");
-                println!("    open <name> <backup>
-- opens the specified file, with specified entry backup");
-                println!("    update <name>
-- displays the latest entry then prompts for a new one");
-                println!("    revert <name>
-- reverts the file to the previous entry");
-                println!("    revert <name> <backup>
-- reverts the file to the specified backup entry");
-                println!("    list
-- Lists available files");
-                println!("    list <name>
-- Lists files matching or containing the specified name");
-                println!("    date <name>
-- Shows the date of the last entry in the file");
-                println!("    backups <name>
-- Lists the dates of all the backups in the file");
-                println!("    rename <name> <new_name>
-- Copies the first file into the second file");
-                println!("    remove <name>
-- Permanently deletes the specified file");
-                println!("    help
-- This is it");
-                println!("    logout
-- Lets you change user");
-                println!("    user
-- Displays current user");
-                println!("    clear
-- Clears the terminal");
-                println!("    exit
-- Exits the program");
+                println!("new <name>               - creates a new file with the given name");
+                println!("new <name> <length>      - creates a new file with the given name and a random password of given length");
+                println!("open <name>              - opens the specified file");
+                println!("open <name> <backup>     - opens the specified file, with specified entry backup");
+                println!("update <name>            - displays the latest entry then prompts for a new one");
+                println!("revert <name>            - reverts the file to the previous entry");
+                println!("revert <name> <backup>   - reverts the file to the specified backup entry");
+                println!("list                     - Lists available files");
+                println!("list <name>              - Lists files matching or containing the specified name");
+                println!("date <name>              - Shows the date of the last entry in the file");
+                println!("backups <name>           - Lists the dates of all the backups in the file");
+                println!("rename <name> <new_name> - Copies the first file into the second file");
+                println!("remove <name>            - Permanently deletes the specified file");
+                println!("help                     - This is it");
+                println!("logout                   - Lets you change user");
+                println!("user                     - Displays current user");
+                println!("clear                    - Clears the terminal");
+                println!("exit                     - Exits the program");
                 println!();
             },
             ["logout"] => user_info = UserInfo::new(),
