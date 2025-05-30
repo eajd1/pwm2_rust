@@ -208,7 +208,7 @@ fn random_entry(length: usize) -> Entry {
 /// and joins them with a seperator character until the desired length is met
 fn memorable_string(length: usize) -> String {
     let mut string = String::new();
-    let seperator = random_special_char();
+    let mut seperator = random_special_char();
     while string.len() < length {
         // Add short string
         let length = rand::thread_rng().gen_range(4..=7);
@@ -220,11 +220,14 @@ fn memorable_string(length: usize) -> String {
         string += &segment;
 
         // Add seperator
-        if string.len() < length {
-            string += &String::from(seperator);
+        string += &String::from(seperator);
+        // Change to change seperator
+        let x = rand::thread_rng().gen_range(0..=1);
+        if x == 0 {
+            seperator = random_special_char();
         }
     }
-    return string;
+    return string[..length].to_string();
 }
 
 fn random_special_char() -> char {
