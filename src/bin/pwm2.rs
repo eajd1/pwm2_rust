@@ -176,11 +176,10 @@ fn main() {
             },
             ["logout"] => user_info = UserInfo::new(),
             ["user"] => println!("{}", user_info),
-            ["clear"] => clear(),
-            ["exit", ..] => {
+            ["clear"] => {
                 clearscreen::clear().expect("Failed to clear screen");
-                break
             },
+            ["exit", ..] => break,
             [""] | [] => continue,
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
@@ -253,7 +252,6 @@ fn random_special_char() -> char {
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
         println!("\n{}", open_entry(&user_info, &entry_file, index));
-        clear();
     }
 }
 
@@ -326,12 +324,5 @@ fn show_save(result: std::io::Result<()>) {
         eprintln!("{}", e);
     } else {
         println!("File saved successfully");
-        clear();
     }
-}
-
-/// Waits for the user to press enter then clears the screen
-fn clear() {
-    get_input("Press enter to continue: ");
-    clearscreen::clear().expect("Failed to clear screen");
 }
