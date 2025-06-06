@@ -34,6 +34,11 @@ impl UserInfo {
         return user_info;
     }
 
+    /// Used to encrypt/decrypt all files belonging to this user
+    pub fn password(&self) -> String {
+        return self.password_hash.clone();
+    }
+
     pub fn hash(&self) -> String {
         let mut msg = SMsg::new::<String>(&self.username);
         msg.encrypt(&self.password_hash);

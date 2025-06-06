@@ -50,7 +50,7 @@ fn main() {
         let args: Vec<&str> = input.as_str().split(' ').collect();
         match args[..] {
             ["new", name] => {
-                let entry = new_entry();
+                let entry = new_entry(&user_info);
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     entry_file.add(entry);
                     show_save(save_file(&user_info, &entry_file));
@@ -61,7 +61,7 @@ fn main() {
             },
             ["new", name, length] if length.parse::<usize>().is_ok() => {
                 let length = length.parse::<usize>().unwrap();
-                let entry = random_entry(length);
+                let entry = random_entry(&user_info, length);
                 if let Some(mut entry_file) = get_file(&user_info, name) {
                     entry_file.add(entry);
                     show_save(save_file(&user_info, &entry_file));
@@ -184,13 +184,13 @@ fn main() {
     }
 }
 
-fn new_entry() -> Entry {
+fn new_entry(user_info: &UserInfo) -> Entry {
     let mut message = SMsg::new::<String>(&get_input("Enter message: "));
-    message.encrypt(&get_confirm_password());
+    message.encrypt(&user_info.password());
     return Entry::new(message);
 }
 
-fn random_entry(length: usize) -> Entry {
+fn random_entry(user_info: &UserInfo, length: usize) -> Entry {
     let mut string = memorable_string(length);
     println!("{}", string);
     let mut input = get_input("generate a new password? (y/n) ").to_lowercase();
@@ -200,7 +200,7 @@ fn random_entry(length: usize) -> Entry {
         input = get_input("generate a new password? (y/n) ").to_lowercase();
     }
     let mut message = SMsg::new::<String>(&string);
-    message.encrypt(&get_confirm_password());
+    message.encrypt(&user_info.password());
     return Entry::new(message);
 }
 
@@ -249,30 +249,25 @@ fn random_special_char() -> char {
 
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
-        println!("\n{}", open_entry(&entry_file, index));
+        println!("\n{}", open_entry(&user_info, &entry_file, index));
         clear();
     }
 }
 
 /// Returns the decrypted message of the [Entry] specified by index
-fn open_entry(entry_file: &EntryFile, index: usize) -> String {
+fn open_entry(user_info: &UserInfo, entry_file: &EntryFile, index: usize) -> String {
     if let Some(entry) = entry_file.get(index) {
         let mut message = entry.get_message();
-        let mut password = get_password("Enter password: ");
-        while !message.is_password(&password) {
-            println!("Incorrect password");
-            password = get_password("Enter password: ");
-        }
-        message.decrypt(&password);
+        message.decrypt(&user_info.password());
         return message.to_utf8_string();
     }
     return String::from("Could not open specified entry");
 }
 
 fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
-    let latest = open_entry(&entry_file, 0);
+    let latest = open_entry(&user_info, &entry_file, 0);
     println!("{}", &latest);
-    let entry = new_entry();
+    let entry = new_entry(&user_info);
     entry_file.add(entry);
     show_save(save_file(&user_info, &entry_file));
 }
@@ -287,8 +282,8 @@ fn revert(user_info: &UserInfo, name: &str, index: usize) {
             eprintln!("Index '{}' too large", index);
             return ();
         }
-        println!("Latest Entry:\n{}", open_entry(&entry_file, 0));
-        println!("Reverting to:\n{}", open_entry(&entry_file, index));
+        println!("Latest Entry:\n{}", open_entry(&user_info, &entry_file, 0));
+        println!("Reverting to:\n{}", open_entry(&user_info, &entry_file, index));
         let input = get_input("Are you sure (y/n) ").to_lowercase();
         match input.as_str() {
             "y" => {
