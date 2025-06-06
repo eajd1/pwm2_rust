@@ -177,7 +177,10 @@ fn main() {
             ["logout"] => user_info = UserInfo::new(),
             ["user"] => println!("{}", user_info),
             ["clear"] => clear(),
-            ["exit", ..] => break,
+            ["exit", ..] => {
+                clearscreen::clear().expect("Failed to clear screen");
+                break
+            },
             [""] | [] => continue,
             _ => println!("Invalid input. Type 'help' for list of commands"),
         }
