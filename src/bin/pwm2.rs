@@ -251,7 +251,7 @@ fn random_special_char() -> char {
 
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
-        println!("\n{}", open_entry(&user_info, &entry_file, index));
+        println!("\n{}\n", open_entry(&user_info, &entry_file, index));
     }
 }
 
