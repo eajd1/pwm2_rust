@@ -35,6 +35,7 @@ use std::fs;
 use rand::Rng;
 
 fn main() {
+    println!("PWM 2.1");
     if fs::metadata(&get_base_path()).is_err() {
         println!("Creating files in {:?}! Close program if you don't want to.",
             std::env::current_dir().expect("Couldn't get current directory"));
@@ -167,6 +168,8 @@ fn main() {
                 println!("backups <name>           - Lists the dates of all the backups in the file");
                 println!("rename <name> <new_name> - Copies the first file into the second file");
                 println!("remove <name>            - Permanently deletes the specified file");
+                println!("sync                     - Hosts a syncronisation");
+                println!("sync <ip>                - Connects to the given ip to sync files");
                 println!("help                     - This is it");
                 println!("logout                   - Lets you change user");
                 println!("user                     - Displays current user");
