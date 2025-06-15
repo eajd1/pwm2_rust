@@ -171,13 +171,19 @@ impl FromString for SMsg {
     fn from_string(string: &str) -> Self {
         let mut lines = string.lines();
         let check = lines.next().expect("No check in string");
-        let data = lines.map(|s| String::from(s))
+        if let Some(data) = lines.map(|s| String::from(s))
             .reduce(|l, r| -> String {
                 l + &r
-            }).expect("No data in string");
-        SMsg {
-            check: Block512::from_hex(check),
-            data: SMsg::parse_bytes(&data),
+            }) {
+            SMsg {
+                check: Block512::from_hex(check),
+                data: SMsg::parse_bytes(&data),
+            }
+        } else {
+            SMsg {
+                check: Block512::from_hex(check),
+                data: Vec::new(),
+            }
         }
     }
 }
