@@ -171,7 +171,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     println!("Getting file headers");
     let mut client_headers = vec![];
     loop {
-        match read_stream(&stream, 32)? {
+        match read_stream(&stream, 64)? {
             Message::Ok => break,
             Message::Header((name, date)) => {
                 client_headers.push((name, date));
@@ -357,7 +357,10 @@ fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> 
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
         Ok(_) => {
-            //println!("Received: {}", Message::new(&convert_buffer(&buf)));
+            if (buf[buf.len() -1] != 0) {
+                println!("Buffer too small for incoming message");
+            }
+            //println!("Received: {}", convert_buffer(&buf));
             Ok(Message::new(&convert_buffer(&buf)))
         },
         Err(e) => Err(e),
