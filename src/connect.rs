@@ -49,12 +49,16 @@ impl Message {
             str if str.starts_with("Header ") => {
                 let mut split = str.trim_start_matches("Header ").split("\n");
                 let message = split.next().expect("Failed to split");
-                let timestamp = split.next().expect("Failed to split");
-                Self::Header((
-                        message.to_string(),
-                        timestamp.parse().expect("Failed to parse DateTime")
+                let timestamp = split.next().expect("Failed to split").parse();
+                if let Ok(timestamp) = timestamp {
+                    Self::Header((
+                            message.to_string(),
+                            timestamp,
+                            )
                         )
-                    )
+                } else {
+                    Self::Header((message.to_string(), Utc::now()))
+                }
             },
             str if str.starts_with("Name ") => 
                 Self::Name(str.trim_start_matches("Name ").to_string()),
@@ -164,7 +168,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     }
 
     // Receive file headers
-    println!("Getting others files");
+    println!("Getting file headers");
     let mut client_headers = vec![];
     loop {
         match read_stream(&stream, 32)? {
@@ -352,13 +356,17 @@ fn convert_buffer(buf: &[u8]) -> String {
 fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
-        Ok(_) => Ok(Message::new(&convert_buffer(&buf))),
+        Ok(_) => {
+            //println!("Received: {}", Message::new(&convert_buffer(&buf)));
+            Ok(Message::new(&convert_buffer(&buf)))
+        },
         Err(e) => Err(e),
     }
 }
 
 /// Calls [write] on the given [TcpStream] and returns the [Result]
 fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
+    //println!("Sent: {}", &message);
     stream.write(message.to_string().as_bytes())?;
     Ok(())
 }
