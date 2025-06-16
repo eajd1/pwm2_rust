@@ -357,7 +357,7 @@ fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> 
     let mut buf: Vec<u8> = vec![0; size + 16];
     match stream.read(&mut buf[..]) {
         Ok(_) => {
-            if (buf[buf.len() -1] != 0) {
+            if buf[buf.len() -1] != 0 {
                 println!("Buffer too small for incoming message");
             }
             //println!("Received: {}", convert_buffer(&buf));
