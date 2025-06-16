@@ -154,6 +154,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
         if user_hash == user_info.hash() {
             write_stream(&stream, &Message::Ok)?;
+            println!("Matching user found");
         } else {
             write_stream(&stream, &Message::Error(String::from("Not matching user")))?;
             return Err(std::io::Error::other("Not matching user"));
@@ -163,6 +164,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     }
 
     // Receive file headers
+    println!("Getting others files");
     let mut client_headers = vec![];
     loop {
         match read_stream(&stream, 32)? {
@@ -175,6 +177,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         }
     }
 
+    println!("Calculating file differences");
     let host_headers = get_headers(&user_info);
     // Calculate required files for host
     let host_required = get_diff(&client_headers, &host_headers);
@@ -182,6 +185,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     let client_required = get_diff(&host_headers, &client_headers);
 
     // Request files
+    println!("Requesting files");
     for header in host_required {
         let (name, _) = header;
         // Request File
@@ -215,6 +219,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     }
 
     // Send files
+    println!("Sending files");
     if let Message::Ok = read_stream(&stream, 0)? {
         for header in client_required {
             let (name, _) = header;
@@ -246,6 +251,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         return communication_error(&stream);
     }
     write_stream(&stream, &Message::Exit)?;
+    println!("Sync complete");
     Ok(())
 }
 
@@ -254,6 +260,8 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
     // Transmit the name and date of all the files
     if let Message::Ok = read_stream(&stream, 0)? {
+        println!("Connection established");
+        println!("Sending files");
         let headers = get_headers(&user_info);
         for header in headers {
             write_stream(&stream, &Message::Header(header))?;
