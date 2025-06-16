@@ -220,35 +220,31 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
 
     // Send files
     println!("Sending files");
-    if let Message::Ok = read_stream(&stream, 0)? {
-        for header in client_required {
-            let (name, _) = header;
-            if let Some(file) = get_file(&user_info, &name) {
-                let entry = file.get(0).expect("No entry in file");
-                let entry_string = entry.to_string();
-                // Send Name
-                println!("Sending file '{}'", &name);
-                write_stream(&stream, &Message::Name(name))?;
+    for header in client_required {
+        let (name, _) = header;
+        if let Some(file) = get_file(&user_info, &name) {
+            let entry = file.get(0).expect("No entry in file");
+            let entry_string = entry.to_string();
+            // Send Name
+            println!("Sending file '{}'", &name);
+            write_stream(&stream, &Message::Name(name))?;
+            if let Message::Ok = read_stream(&stream, 0)? {
+                // Send Length
+                write_stream(&stream, &Message::Length(entry_string.len()))?;
                 if let Message::Ok = read_stream(&stream, 0)? {
-                    // Send Length
-                    write_stream(&stream, &Message::Length(entry_string.len()))?;
-                    if let Message::Ok = read_stream(&stream, 0)? {
-                        // Send Entry
-                        write_stream(&stream, &Message::Entry(entry))?;
-                    } else {
-                        return communication_error(&stream);
-                    }
+                    // Send Entry
+                    write_stream(&stream, &Message::Entry(entry))?;
                 } else {
                     return communication_error(&stream);
                 }
-            }
-            match read_stream(&stream, 0)? {
-                Message::Ok => (),
-                _ => return communication_error(&stream),
+            } else {
+                return communication_error(&stream);
             }
         }
-    } else {
-        return communication_error(&stream);
+        match read_stream(&stream, 0)? {
+            Message::Ok => (),
+            _ => return communication_error(&stream),
+        }
     }
     write_stream(&stream, &Message::Exit)?;
     println!("Sync complete");
@@ -261,7 +257,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     // Transmit the name and date of all the files
     if let Message::Ok = read_stream(&stream, 0)? {
         println!("Connection established");
-        println!("Sending files");
+        println!("Sending headers");
         let headers = get_headers(&user_info);
         for header in headers {
             write_stream(&stream, &Message::Header(header))?;
@@ -277,7 +273,10 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
 
     loop {
         match read_stream(&stream, 32)? {
-            Message::Exit => return Ok(()),
+            Message::Exit => {
+                println!("Sync complete");
+                return Ok(())
+            },
             Message::Ok => {
                 write_stream(&stream, &Message::Exit)?;
                 return Ok(());
