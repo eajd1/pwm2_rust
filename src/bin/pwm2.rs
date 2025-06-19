@@ -1,27 +1,4 @@
-// Each entry will be its own file so only one password can be
-// displayed at a time.
-// As a result the name of each entry must fit into one Block512
-// The user name and password will be used to encrypt the names
-// but the actual data in each entry can have its own password
-// file structure will end up being:
-// ./files/<USERHASH>/<ENCRYPTEDENTRYNAME>
-// Whenever and entry is updated a backup of the old entry should be still in
-// the same file and accessible just incase
-
-// checklist:
-// [x] get user info
-// [x] have a way to display all entry names
-// [x] have a way to display an entry and clear the display after
-// [x] add a new entry file
-// [x] add a new entry
-// [x] edit an entry file
-// [x] entry backup
-// [x] viewable backups
-// [x] restore backup
-// [x] remove an entry
-// [x] add a way to generate random but memorable passwords
-// [x] new entries reusing names just add an entry
-// [x] syncing between computers
+// pwm2.2
 
 use pwm2_rust::{
     *,
@@ -35,7 +12,7 @@ use std::fs;
 use rand::Rng;
 
 fn main() {
-    println!("PWM 2.1");
+    println!("PWM 2.2");
     if fs::metadata(&get_base_path()).is_err() {
         println!("Creating files in {:?}! Close program if you don't want to.",
             std::env::current_dir().expect("Couldn't get current directory"));
