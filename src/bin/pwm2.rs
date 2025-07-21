@@ -14,7 +14,7 @@ use rand::Rng;
 fn main() {
     println!("PWM 2.2");
     if fs::metadata(&get_base_path()).is_err() {
-        println!("Creating files in {:?}! Close program if you don't want to.",
+        println!("Creating files in {:?}\nClose program if you don't want to.",
             std::env::current_dir().expect("Couldn't get current directory"));
         get_input("Press enter to accept ");
     }

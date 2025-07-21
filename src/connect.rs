@@ -15,13 +15,14 @@ use std::{
 use local_ip_address::local_ip;
 use chrono::{Utc, DateTime};
 
+const LENGTHDIVISOR: u32 = 2;
+
 pub enum Message {
     Exit,
     Ok,
     Hash(String),
     Error(String),
     Invalid,
-    Length(usize),
     Header((String, DateTime<Utc>)),
     Name(String),
     Request(String),
@@ -40,12 +41,6 @@ impl Message {
                 Self::Hash(str.trim_start_matches("Hash ").to_string()),
             str if str.starts_with("Error ") =>
                 Self::Error(str.trim_start_matches("Error ").to_string()),
-            str if str.starts_with("Length ") => {
-                let length = str.trim_start_matches("Length ")
-                    .parse::<usize>()
-                    .expect("Length doesn't contain a number");
-                Self::Length(length)
-            },
             str if str.starts_with("Header ") => {
                 let mut split = str.trim_start_matches("Header ").split("\n");
                 let message = split.next().expect("Failed to split");
@@ -83,7 +78,6 @@ impl std::fmt::Display for Message {
                 Self::Hash(str) => String::from("Hash ") + &str,
                 Self::Error(str) => String::from("Error ") + &str,
                 Self::Invalid => String::from("Invalid"),
-                Self::Length(len) => String::from("Length ") + &len.to_string(),
                 Self::Header((name, date)) =>
                     String::from("Header ") + &name + "\n" + &format!("{:?}", date),
                 Self::Name(str) => String::from("Name ") + &str,
@@ -140,14 +134,10 @@ fn valid_ip(ip: &str) -> bool {
 // Client: Ok
 // Repeat below until files sent
 //     Host: Request File
-//     Client: File Length
-//     Host: Ok
 //     Client: File
 // Host: Ok -> Client: Ok
 // Repeat below until files sent
 //     Host: File Name
-//     Client: Ok
-//     Host: File Length
 //     Client: Ok
 //     Host: File
 //     Client: Ok
@@ -155,7 +145,7 @@ fn valid_ip(ip: &str) -> bool {
 /// The process of hosting a sync
 pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     // Check Hash
-    if let Message::Hash(user_hash) = read_stream(&stream, 512)? {
+    if let Message::Hash(user_hash) = read_stream(&stream)? {
         if user_hash == user_info.hash() {
             write_stream(&stream, &Message::Ok)?;
             println!("Matching user found");
@@ -171,7 +161,7 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     println!("Getting file headers");
     let mut client_headers = vec![];
     loop {
-        match read_stream(&stream, 64)? {
+        match read_stream(&stream)? {
             Message::Ok => break,
             Message::Header((name, date)) => {
                 client_headers.push((name, date));
@@ -195,28 +185,22 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         // Request File
         println!("Requesting file '{}'", &name);
         write_stream(&stream, &Message::Request(name.clone()))?;
-        // Receive Length
-        if let Message::Length(len) = read_stream(&stream, 16)? {
-            write_stream(&stream, &Message::Ok)?;
-            // Receive File
-            if let Message::Entry(entry) = read_stream(&stream, len)? {
-                // If the file already exists, append the entry
-                if let Some(mut entry_file) = get_file(&user_info, &name) {
-                    entry_file.add(entry);
-                    if let Err(e) = save_file(&user_info, &entry_file) {
-                        eprintln!("{}", e);
-                    }
-                } else {
-                    // Otherwise create a new file
-                    let entry_file = EntryFile::new(&user_info, &name, entry);
-                    if let Err(e) = save_file(&user_info, &entry_file) {
-                        eprintln!("{}", e);
-                    }
+        // Receive File
+        if let Message::Entry(entry) = read_stream(&stream)? {
+            // If the file already exists, append the entry
+            if let Some(mut entry_file) = get_file(&user_info, &name) {
+                entry_file.add(entry);
+                if let Err(e) = save_file(&user_info, &entry_file) {
+                    eprintln!("{}", e);
                 }
-                write_stream(&stream, &Message::Ok)?;
             } else {
-                return communication_error(&stream);
+                // Otherwise create a new file
+                let entry_file = EntryFile::new(&user_info, &name, entry);
+                if let Err(e) = save_file(&user_info, &entry_file) {
+                    eprintln!("{}", e);
+                }
             }
+            write_stream(&stream, &Message::Ok)?;
         } else {
             return communication_error(&stream);
         }
@@ -228,24 +212,17 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
         let (name, _) = header;
         if let Some(file) = get_file(&user_info, &name) {
             let entry = file.get(0).expect("No entry in file");
-            let entry_string = entry.to_string();
             // Send Name
             println!("Sending file '{}'", &name);
             write_stream(&stream, &Message::Name(name))?;
-            if let Message::Ok = read_stream(&stream, 0)? {
-                // Send Length
-                write_stream(&stream, &Message::Length(entry_string.len()))?;
-                if let Message::Ok = read_stream(&stream, 0)? {
-                    // Send Entry
-                    write_stream(&stream, &Message::Entry(entry))?;
-                } else {
-                    return communication_error(&stream);
-                }
+            if let Message::Ok = read_stream(&stream)? {
+                // Send Entry
+                write_stream(&stream, &Message::Entry(entry))?;
             } else {
                 return communication_error(&stream);
             }
         }
-        match read_stream(&stream, 0)? {
+        match read_stream(&stream)? {
             Message::Ok => (),
             _ => return communication_error(&stream),
         }
@@ -259,13 +236,13 @@ pub fn host(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
 pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     write_stream(&stream, &Message::Hash(user_info.hash()))?;
     // Transmit the name and date of all the files
-    if let Message::Ok = read_stream(&stream, 0)? {
+    if let Message::Ok = read_stream(&stream)? {
         println!("Connection established");
         println!("Sending headers");
         let headers = get_headers(&user_info);
         for header in headers {
             write_stream(&stream, &Message::Header(header))?;
-            match read_stream(&stream, 0)? {
+            match read_stream(&stream)? {
                 Message::Ok => (),
                 _ => return communication_error(&stream),
             }
@@ -276,7 +253,7 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
     }
 
     loop {
-        match read_stream(&stream, 32)? {
+        match read_stream(&stream)? {
             Message::Exit => {
                 println!("Sync complete");
                 return Ok(())
@@ -291,19 +268,12 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
                 // Host requesting file
                 if let Some(file) = get_file(&user_info, &name) {
                     let entry = file.get(0).expect("No entry in file");
-                    let entry_string = entry.to_string();
-                    // Send Length
-                    write_stream(&stream, &Message::Length(entry_string.len()))?;
-                    if let Message::Ok = read_stream(&stream, 0)? {
-                        // Send Entry
-                        println!("Sending file '{}'", &name);
-                        write_stream(&stream, &Message::Entry(entry))?;
-                        match read_stream(&stream, 0)? {
-                            Message::Ok => write_stream(&stream, &Message::Ok)?,
-                            _ => return communication_error(&stream),
-                        }
-                    } else {
-                        return communication_error(&stream);
+                    // Send Entry
+                    println!("Sending file '{}'", &name);
+                    write_stream(&stream, &Message::Entry(entry))?;
+                    match read_stream(&stream)? {
+                        Message::Ok => write_stream(&stream, &Message::Ok)?,
+                        _ => return communication_error(&stream),
                     }
                 }
             },
@@ -311,25 +281,21 @@ pub fn client(stream: TcpStream, user_info: &UserInfo) -> std::io::Result<()> {
             Message::Name(name) => {
                 println!("Receiving file '{}'", &name);
                 write_stream(&stream, &Message::Ok)?;
-                // Host sending file length
-                if let Message::Length(len) = read_stream(&stream, 0)? {
-                    write_stream(&stream, &Message::Ok)?;
-                    if let Message::Entry(entry) = read_stream(&stream, len)? {
-                        if let Some(mut entry_file) = get_file(&user_info, &name) {
-                            entry_file.add(entry);
-                            if let Err(e) = save_file(&user_info, &entry_file) {
-                                eprintln!("{}", e);
-                            }
-                        } else {
-                            let entry_file = EntryFile::new(&user_info, &name, entry);
-                            if let Err(e) = save_file(&user_info, &entry_file) {
-                                eprintln!("{}", e);
-                            }
+                if let Message::Entry(entry) = read_stream(&stream)? {
+                    if let Some(mut entry_file) = get_file(&user_info, &name) {
+                        entry_file.add(entry);
+                        if let Err(e) = save_file(&user_info, &entry_file) {
+                            eprintln!("{}", e);
                         }
-                        write_stream(&stream, &Message::Ok)?;
                     } else {
-                        return communication_error(&stream);
+                        let entry_file = EntryFile::new(&user_info, &name, entry);
+                        if let Err(e) = save_file(&user_info, &entry_file) {
+                            eprintln!("{}", e);
+                        }
                     }
+                    write_stream(&stream, &Message::Ok)?;
+                } else {
+                    return communication_error(&stream);
                 }
             },
             _ => return communication_error(&stream),
@@ -353,15 +319,19 @@ fn convert_buffer(buf: &[u8]) -> String {
 /// Calls [read] on the given [TcpStream] and returns Ok(Message)
 ///
 /// If the read was unsuccessful returns an [Err]
-fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> {
-    let mut buf: Vec<u8> = vec![0; size + 16];
+fn read_stream(mut stream: &TcpStream) -> std::io::Result<Message> {
+    let mut buf: Vec<u8> = vec![0; 1];
     match stream.read(&mut buf[..]) {
         Ok(_) => {
-            if buf[buf.len() -1] != 0 {
-                println!("Buffer too small for incoming message");
+            let mut buf: Vec<u8> =
+                vec![0; (buf[0] as usize) << LENGTHDIVISOR + (1 << LENGTHDIVISOR - 1)];
+            match stream.read(&mut buf[..]) {
+                Ok(_) => {
+                    //println!("Received: {}", convert_buffer(&buf));
+                    Ok(Message::new(&convert_buffer(&buf)))
+                },
+                Err(e) => Err(e),
             }
-            //println!("Received: {}", convert_buffer(&buf));
-            Ok(Message::new(&convert_buffer(&buf)))
         },
         Err(e) => Err(e),
     }
@@ -370,7 +340,10 @@ fn read_stream(mut stream: &TcpStream, size: usize) -> std::io::Result<Message> 
 /// Calls [write] on the given [TcpStream] and returns the [Result]
 fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
     //println!("Sent: {}", &message);
-    stream.write(message.to_string().as_bytes())?;
+    let data = message.to_string();
+    let len = (data.as_bytes().len() >> LENGTHDIVISOR | 1) as u8;
+    stream.write(&[len])?;
+    stream.write(data.as_bytes())?;
     Ok(())
 }
 
