@@ -15,8 +15,6 @@ use std::{
 use local_ip_address::local_ip;
 use chrono::{Utc, DateTime};
 
-const LENGTHDIVISOR: u32 = 2;
-
 pub enum Message {
     Exit,
     Ok,
@@ -320,11 +318,11 @@ fn convert_buffer(buf: &[u8]) -> String {
 ///
 /// If the read was unsuccessful returns an [Err]
 fn read_stream(mut stream: &TcpStream) -> std::io::Result<Message> {
-    let mut buf: Vec<u8> = vec![0; 1];
+    let mut buf = [0; 4];
     match stream.read(&mut buf[..]) {
         Ok(_) => {
-            let mut buf: Vec<u8> =
-                vec![0; (buf[0] as usize) << LENGTHDIVISOR + (1 << LENGTHDIVISOR - 1)];
+            let len = u32::from_be_bytes(buf);
+            let mut buf: Vec<u8> = vec![0; len as usize];
             match stream.read(&mut buf[..]) {
                 Ok(_) => {
                     //println!("Received: {}", convert_buffer(&buf));
@@ -341,8 +339,8 @@ fn read_stream(mut stream: &TcpStream) -> std::io::Result<Message> {
 fn write_stream(mut stream: &TcpStream, message: &Message) -> std::io::Result<()> {
     //println!("Sent: {}", &message);
     let data = message.to_string();
-    let len = (data.as_bytes().len() >> LENGTHDIVISOR | 1) as u8;
-    stream.write(&[len])?;
+    let len = data.as_bytes().len() as u32;
+    stream.write(&len.to_be_bytes())?;
     stream.write(data.as_bytes())?;
     Ok(())
 }
