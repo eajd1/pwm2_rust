@@ -10,6 +10,7 @@ use pwm2_rust::{
 };
 use std::fs;
 use rand::Rng;
+use arboard::Clipboard;
 
 fn main() {
     println!("PWM 2.2");
@@ -21,6 +22,8 @@ fn main() {
     create_dir(&get_base_path());
 
     let mut user_info = UserInfo::new();
+    //TODO ask if user doesn't mind not having a clipboard if this fails
+    let mut clipboard = Clipboard::new().unwrap();
 
     println!("type 'help' for list of commands");
     loop {
@@ -52,6 +55,11 @@ fn main() {
             ["open", name, backup] if backup.parse::<usize>().is_ok() => {
                 let backup = backup.parse::<usize>().unwrap();
                 open(&user_info, name, backup);
+            },
+            ["copy", name] => copy(&user_info, name, 0, &mut clipboard),
+            ["copy", name, backup] if backup.parse::<usize>().is_ok() => {
+                let backup = backup.parse::<usize>().unwrap();
+                copy(&user_info, name, backup, &mut clipboard);
             },
             ["update", name] => {
                 if let Some(mut entry_file) = get_file(&user_info, name) {
@@ -231,26 +239,49 @@ fn random_special_char() -> char {
 
 fn open(user_info: &UserInfo, name: &str, index: usize) {
     if let Some(entry_file) = get_file(&user_info, name) {
-        println!("\n{}\n", open_entry(&user_info, &entry_file, index));
+        if let Some(entry) = open_entry(&user_info, &entry_file, index) {
+            println!("\n{}\n", entry);
+        } else {
+            println!("\nCould not open specified entry\n");
+        }
     }
 }
 
 /// Returns the decrypted message of the [Entry] specified by index
-fn open_entry(user_info: &UserInfo, entry_file: &EntryFile, index: usize) -> String {
+fn open_entry(user_info: &UserInfo, entry_file: &EntryFile, index: usize) ->
+    Option<String> {
     if let Some(entry) = entry_file.get(index) {
         let mut message = entry.get_message();
         message.decrypt(&user_info.password());
-        return message.to_utf8_string();
+        return Some(message.to_utf8_string());
     }
-    return String::from("Could not open specified entry");
+    return None;
+}
+
+fn copy(user_info: &UserInfo, name: &str, index: usize, clipboard: &mut Clipboard) {
+    if let Some(entry_file) = get_file(&user_info, name) {
+        if let Some(entry) = open_entry(&user_info, &entry_file, index) {
+            if let Ok(_) = clipboard.set_text(entry) {
+                println!("\nEntry Copyied\n");
+            } else {
+                println!("Failed to copy");
+                //TODO maybe add an option to display instead
+            }
+        } else {
+            println!("\nCould not open specified entry\n");
+        }
+    }
 }
 
 fn update(user_info: &UserInfo, entry_file: &mut EntryFile) {
-    let latest = open_entry(&user_info, &entry_file, 0);
-    println!("{}", &latest);
-    let entry = new_entry(&user_info);
-    entry_file.add(entry);
-    show_save(save_file(&user_info, &entry_file));
+    if let Some(latest) = open_entry(&user_info, &entry_file, 0) {
+        println!("{}", &latest);
+        let entry = new_entry(&user_info);
+        entry_file.add(entry);
+        show_save(save_file(&user_info, &entry_file));
+    } else {
+        println!("Couldn't open entry");
+    }
 }
 
 fn revert(user_info: &UserInfo, name: &str, index: usize) {
@@ -263,8 +294,8 @@ fn revert(user_info: &UserInfo, name: &str, index: usize) {
             eprintln!("Index '{}' too large", index);
             return ();
         }
-        println!("Latest Entry:\n{}", open_entry(&user_info, &entry_file, 0));
-        println!("Reverting to:\n{}", open_entry(&user_info, &entry_file, index));
+        println!("Latest Entry:\n{}", open_entry(&user_info, &entry_file, 0).unwrap());
+        println!("Reverting to:\n{}", open_entry(&user_info, &entry_file, index).unwrap());
         let input = get_input("Are you sure (y/n) ").to_lowercase();
         match input.as_str() {
             "y" => {
