@@ -22,8 +22,7 @@ fn main() {
     create_dir(&get_base_path());
 
     let mut user_info = UserInfo::new();
-    //TODO ask if user doesn't mind not having a clipboard if this fails
-    let mut clipboard = Clipboard::new().unwrap();
+    let mut clipboard = Clipboard::new().expect("Error getting clipboard");
 
     println!("type 'help' for list of commands");
     loop {
@@ -265,11 +264,12 @@ fn open_entry(user_info: &UserInfo, entry_file: &EntryFile, index: usize) ->
 fn copy(user_info: &UserInfo, name: &str, index: usize, clipboard: &mut Clipboard) {
     if let Some(entry_file) = get_file(&user_info, name) {
         if let Some(entry) = open_entry(&user_info, &entry_file, index) {
-            if let Ok(_) = clipboard.set_text(entry) {
+            if let Ok(_) = clipboard.set_text(&entry) {
                 println!("\nEntry Copyied\n");
             } else {
-                println!("Failed to copy");
-                //TODO maybe add an option to display instead
+                if confirm_message("Failed to copy entry. Display instead?") {
+                    println!("\n{}\n", entry);
+                }
             }
         } else {
             println!("\nCould not open specified entry\n");

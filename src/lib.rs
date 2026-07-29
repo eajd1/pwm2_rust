@@ -33,6 +33,17 @@ pub fn load(path: &Path) -> Result<String, std::io::Error> {
     fs::read_to_string(path)
 }
 
+pub fn confirm_message(message: &str) -> bool {
+    loop {
+        let answer = get_input(&(message.to_owned() + " [Y/n]")).to_lowercase();
+        match answer.as_str() {
+            "y" | "" => return true,
+            "n" => return false,
+            _ => continue,
+        }
+    }
+}
+
 /// Creates a new directory printing all errors to stderr,
 /// except when the directory already exists  
 pub fn create_dir(path: &PathBuf) {
