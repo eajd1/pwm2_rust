@@ -144,6 +144,8 @@ fn main() {
                 println!("new <name> <length>      - creates a new file with the given name and a random password of given length");
                 println!("open <name>              - opens the specified file");
                 println!("open <name> <backup>     - opens the specified file, with specified entry backup");
+                println!("copy <name>              - copys the specified file");
+                println!("copy <name> <backup>     - copys the specified file, with specified entry backup");
                 println!("update <name>            - displays the latest entry then prompts for a new one");
                 println!("revert <name>            - reverts the file to the previous entry");
                 println!("revert <name> <backup>   - reverts the file to the specified backup entry");
@@ -244,6 +246,8 @@ fn open(user_info: &UserInfo, name: &str, index: usize) {
         } else {
             println!("\nCould not open specified entry\n");
         }
+    } else {
+        println!("\nCould not find file: {}\n", name);
     }
 }
 
@@ -270,6 +274,8 @@ fn copy(user_info: &UserInfo, name: &str, index: usize, clipboard: &mut Clipboar
         } else {
             println!("\nCould not open specified entry\n");
         }
+    } else {
+        println!("\nCould not find file: {}\n", name);
     }
 }
 
