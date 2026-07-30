@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 sha2 = "0.10.0"
-rpassword = "7.2.0"
-rand = "0.8.*"
+rpassword = "7.5.*"
+rand = "0.8.6"
 x11 = "2.21.0"
 chrono = "0.4.40"
 clearscreen = "4.0.1"
